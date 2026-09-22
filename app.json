@@ -1,0 +1,22 @@
+{
+  "expo": {
+    "name": "hi-hubble",
+    "slug": "hi-hubble",
+    "version": "1.0.0",
+    "sdkVersion": "57.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "plugins": [
+      "expo-asset",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow HiHubble to access your photos to share photos and videos in HUBBs.",
+          "cameraPermission": "Allow HiHubble to access your camera to take photos and videos for your HUBBs."
+        }
+      ],
+      "expo-video",
+      "@react-native-community/datetimepicker"
+    ]
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "name": "hi-hubble",
+  "version": "1.0.0",
+  "main": "index.ts",
+  "scripts": {
+    "start": "npx expo start -c",
+    "android": "npx expo start --android",
+    "ios": "npx expo start --ios",
+    "web": "npx expo start --web"
+  },
+  "dependencies": {
+    "@expo-google-fonts/fredoka": "^0.2.3",
+    "@expo/vector-icons": "^15.0.2",
+    "@react-native-community/datetimepicker": "9.1.0",
+    "expo": "~57.0.24",
+    "expo-asset": "~57.0.18",
+    "expo-font": "~57.0.4",
+    "expo-image-picker": "~57.0.19",
+    "expo-linear-gradient": "~57.0.2",
+    "expo-splash-screen": "~57.0.9",
+    "expo-status-bar": "~57.0.1",
+    "expo-video": "~57.0.4",
+    "expo-video-thumbnails": "~57.0.2",
+    "react": "19.2.3",
+    "react-native": "0.86.3",
+    "react-native-safe-area-context": "~5.7.0",
+    "react-native-svg": "15.15.4"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.25.2",
+    "@types/react": "~19.2.4",
+    "typescript": "~6.0.3"
+  },
+  "private": true
+}
