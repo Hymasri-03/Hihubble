@@ -12,6 +12,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { COLORS } from '../../constants/colors';
+import { requestOtpVerification, verifyOtpCode } from '../../utils/otpService';
 
 interface OtpVerificationProps {
   targetDestination: string; // e.g., mobile number or email
@@ -34,13 +35,32 @@ export default function OtpVerification({
 
   const inputRefs = useRef<Array<TextInput | null>>([]);
 
-  // Auto-focus first input on mount
+  // Send OTP automatically on mount & auto-focus input
   useEffect(() => {
+    let isMounted = true;
+    const initSend = async () => {
+      if (targetDestination) {
+        const res = await requestOtpVerification(targetDestination);
+        if (isMounted) {
+          if (res.success) {
+            setResendNotification(res.message);
+          } else {
+            setErrorMessage(res.message);
+          }
+        }
+      }
+    };
+    initSend();
+
     const timer = setTimeout(() => {
       inputRefs.current[0]?.focus();
     }, 150);
-    return () => clearTimeout(timer);
-  }, []);
+
+    return () => {
+      isMounted = false;
+      clearTimeout(timer);
+    };
+  }, [targetDestination]);
 
   // 30-second countdown timer for Resend OTP
   useEffect(() => {
@@ -122,8 +142,12 @@ export default function OtpVerification({
 
     setVerifying(true);
     try {
-      // Simulate network verification
-      await new Promise((resolve) => setTimeout(resolve, 1400));
+      const isValid = verifyOtpCode(targetDestination, fullCode);
+      if (!isValid) {
+        setErrorMessage('Invalid OTP code. Please check and try again.');
+        return;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 600));
       onVerifySuccess();
     } catch {
       setErrorMessage('Verification failed. Please check the code and try again.');
@@ -132,15 +156,23 @@ export default function OtpVerification({
     }
   };
 
-  const handleResend = () => {
+  const handleResend = async () => {
     if (!canResend) return;
     setOtp(['', '', '', '', '', '']);
     setCountdown(30);
     setCanResend(false);
     setErrorMessage(null);
-    setResendNotification('A fresh 6-digit verification code has been sent!');
+
+    const result = await requestOtpVerification(targetDestination);
+    if (result.success) {
+      setResendNotification(result.message);
+    } else {
+      setErrorMessage(result.message);
+    }
     inputRefs.current[0]?.focus();
   };
+
+
 
   const formatTimer = (sec: number) => {
     const s = sec < 10 ? `0${sec}` : `${sec}`;
