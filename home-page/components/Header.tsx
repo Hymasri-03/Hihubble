@@ -1,5 +1,6 @@
 import { StyleSheet, View, Text, Image, TouchableOpacity } from 'react-native';
 import { Feather, Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import _Svg, { Path as _Path } from 'react-native-svg';
 
 // Cast for React 19 JSX IDE compatibility
@@ -11,12 +12,18 @@ export default function Header({
   onToggleTheme,
   hasNotification = true,
   onOpenNotifications,
+  onOpenProfile,
+  userAvatar,
+  rightType = 'notification',
 }: {
   isDark: boolean;
   onToggleTheme: () => void;
   onOpenSearch?: () => void;
   hasNotification?: boolean;
   onOpenNotifications?: () => void;
+  onOpenProfile?: () => void;
+  userAvatar?: string;
+  rightType?: 'notification' | 'profile';
 }) {
   return (
     <View style={styles.container}>
@@ -67,24 +74,50 @@ export default function Header({
         </View>
       </View>
 
-      {/* Right: Notification Bell only (Mood button removed from this side) */}
+      {/* Right: Notification Bell or Profile Avatar */}
       <View style={styles.rightGroup}>
-        <TouchableOpacity
-          style={[styles.iconCircle, isDark && styles.iconCircleDark]}
-          activeOpacity={0.75}
-          onPress={onOpenNotifications}
-          accessibilityLabel="Notifications"
-        >
-          <Ionicons
-            name="notifications-outline"
-            size={19}
-            color={isDark ? '#D8CCFF' : '#6535EA'}
-          />
-          {/* Logo color circle notification dot — only shown when there is a notification */}
-          {hasNotification && (
-            <View style={[styles.notifDot, isDark && styles.notifDotDark]} />
-          )}
-        </TouchableOpacity>
+        {rightType === 'profile' ? (
+          <TouchableOpacity
+            style={styles.profileAvatarWrapper}
+            activeOpacity={0.8}
+            onPress={onOpenProfile || onOpenNotifications}
+            accessibilityLabel="Profile"
+          >
+            <LinearGradient
+              colors={['#4C2CE6', '#6535EA', '#8B5CF6']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.profileGradientRing}
+            >
+              <View style={[styles.profileInnerGap, { borderColor: isDark ? '#140C2C' : '#FFFFFF' }]}>
+                <Image
+                  source={{
+                    uri:
+                      userAvatar ||
+                      'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+                  }}
+                  style={styles.profileAvatar}
+                />
+              </View>
+            </LinearGradient>
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity
+            style={[styles.iconCircle, isDark && styles.iconCircleDark]}
+            activeOpacity={0.75}
+            onPress={onOpenNotifications}
+            accessibilityLabel="Notifications"
+          >
+            <Feather
+              name="bell"
+              size={19}
+              color={isDark ? '#D8CCFF' : '#6535EA'}
+            />
+            {hasNotification && (
+              <View style={[styles.notifDot, isDark && styles.notifDotDark]} />
+            )}
+          </TouchableOpacity>
+        )}
       </View>
     </View>
   );
@@ -194,20 +227,22 @@ const styles = StyleSheet.create({
     height: 36,
     borderRadius: 18,
     backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#EDE9F8',
+    borderWidth: 1.5,
+    borderColor: '#D4C4FC',
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
-    shadowColor: '#302060',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06,
-    shadowRadius: 3,
-    elevation: 1,
+    shadowColor: '#6535EA',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 4,
+    elevation: 2,
   },
   iconCircleDark: {
     backgroundColor: '#231846',
-    borderColor: '#37276B',
+    borderColor: '#4A3485',
+    shadowColor: '#8338EC',
+    shadowOpacity: 0.2,
   },
   // Circular notification dot in logo purple color (#6535EA / #9D6BFF)
   notifDot: {
@@ -224,5 +259,34 @@ const styles = StyleSheet.create({
   notifDotDark: {
     backgroundColor: '#9D6BFF',
     borderColor: '#231846',
+  },
+
+  // Profile avatar gradient ring in header
+  profileAvatarWrapper: {
+    padding: 1,
+  },
+  profileGradientRing: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    padding: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#8338EC',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+    elevation: 3,
+  },
+  profileInnerGap: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    borderWidth: 1.5,
+    overflow: 'hidden',
+  },
+  profileAvatar: {
+    width: '100%',
+    height: '100%',
   },
 });

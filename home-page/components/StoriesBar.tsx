@@ -11,7 +11,24 @@ export interface StoryItemData {
   thumbnailUri?: string;
   caption?: string;
   timeAgo?: string;
+  createdAt?: number;
+  expiresAt?: number;
   isUserStory?: boolean;
+  filter?: string;
+  crop?: { aspect: string; zoom: number };
+  rotation?: number;
+  adjustments?: any;
+  stickers?: any[];
+  texts?: any[];
+  music?: any;
+  location?: any;
+}
+
+export const STORY_EXPIRATION_MS = 24 * 60 * 60 * 1000;
+
+export function isStoryNotExpired(story: StoryItemData): boolean {
+  if (!story.createdAt) return true;
+  return Date.now() - story.createdAt < STORY_EXPIRATION_MS;
 }
 
 const DEFAULT_USER_AVATAR =
@@ -22,7 +39,7 @@ const STORIES: StoryItemData[] = [
     id: 'alex',
     name: 'Alex Rivers',
     avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
-    hasPlus: true,
+    hasPlus: false,
     mediaUri: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=800&auto=format&fit=crop&q=80',
     caption: 'The view from our team offsite was incredible! 🏔️✨',
     timeAgo: '1h ago',
@@ -59,6 +76,9 @@ const STORIES: StoryItemData[] = [
 interface StoriesBarProps {
   isDark?: boolean;
   userStory?: StoryItemData | null;
+  stories?: StoryItemData[];
+  onOpenUserStory?: () => void;
+  onOpenMockStory?: (story: StoryItemData) => void;
   onOpenStory?: (story: StoryItemData) => void;
   onOpenCreateStory?: () => void;
 }
@@ -66,10 +86,14 @@ interface StoriesBarProps {
 export default function StoriesBar({
   isDark,
   userStory,
+  stories,
+  onOpenUserStory,
+  onOpenMockStory,
   onOpenStory,
   onOpenCreateStory,
 }: StoriesBarProps) {
-  const hasStory = !!userStory;
+  const hasStory = !!userStory && isStoryNotExpired(userStory);
+  const mockStoriesList = (stories && stories.length > 0 ? stories : STORIES).filter(isStoryNotExpired);
 
   return (
     <View style={styles.container}>
@@ -85,8 +109,12 @@ export default function StoriesBar({
             activeOpacity={0.8}
             onPress={() => {
               if (hasStory && userStory) {
-                // If there is a story -> show it!
-                onOpenStory?.(userStory);
+                // If there is a story -> show only user's story!
+                if (onOpenUserStory) {
+                  onOpenUserStory();
+                } else {
+                  onOpenStory?.(userStory);
+                }
               } else {
                 // No story yet -> show the Share HUBBs screen!
                 onOpenCreateStory?.();
@@ -96,7 +124,7 @@ export default function StoriesBar({
             {hasStory ? (
               /* Active Story Ring (Vibrant gradient squircle) */
               <LinearGradient
-                colors={['#8338EC', '#C724B1', '#FF2A85']}
+                colors={['#4C2CE6', '#6535EA', '#8B5CF6']}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={styles.gradientSquircleRing}
@@ -155,15 +183,21 @@ export default function StoriesBar({
         </View>
 
         {/* ── Stories of Others ── */}
-        {STORIES.map((story) => (
+        {mockStoriesList.map((story) => (
           <View key={story.id} style={styles.storyItem}>
             <TouchableOpacity
               style={styles.ringWrapper}
               activeOpacity={0.8}
-              onPress={() => onOpenStory?.(story)}
+              onPress={() => {
+                if (onOpenMockStory) {
+                  onOpenMockStory(story);
+                } else {
+                  onOpenStory?.(story);
+                }
+              }}
             >
               <LinearGradient
-                colors={['#8338EC', '#C724B1', '#FF2A85']}
+                colors={['#4C2CE6', '#6535EA', '#8B5CF6']}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={styles.gradientSquircleRing}
@@ -223,7 +257,7 @@ const styles = StyleSheet.create({
     padding: 2.5,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#FF2A85',
+    shadowColor: '#6535EA',
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.25,
     shadowRadius: 6,

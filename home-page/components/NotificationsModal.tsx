@@ -11,6 +11,7 @@ import {
   Platform,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 
 export interface NotificationItem {
   id: string;
@@ -105,7 +106,19 @@ export default function NotificationsModal({
       transparent={false}
       onRequestClose={onClose}
     >
-      <SafeAreaView style={[styles.safeArea, isDark && styles.safeAreaDark]}>
+      <View style={{ flex: 1, backgroundColor: isDark ? '#100824' : '#E5F0FF' }}>
+        {/* Atmosphere Background Gradient like in Home Page */}
+        <LinearGradient
+          colors={
+            isDark
+              ? ['#140C2C', '#1B0E3C', '#0A0518']
+              : ['#E5F0FF', '#D8E8FC', '#C8DFFA']
+          }
+          start={{ x: 0.5, y: 0 }}
+          end={{ x: 0.5, y: 1 }}
+          style={StyleSheet.absoluteFill}
+        />
+        <SafeAreaView style={[styles.safeArea, isDark && styles.safeAreaDark]}>
         {/* Top Header */}
         <View style={[styles.header, isDark && styles.headerDark]}>
           {/* Notifications title in pure white / light color in dark mode */}
@@ -171,7 +184,8 @@ export default function NotificationsModal({
             );
           })}
         </ScrollView>
-      </SafeAreaView>
+        </SafeAreaView>
+      </View>
     </Modal>
   );
 }
@@ -179,11 +193,11 @@ export default function NotificationsModal({
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'transparent',
     paddingTop: Platform.OS === 'android' ? 24 : 0,
   },
   safeAreaDark: {
-    backgroundColor: '#120A24',
+    backgroundColor: 'transparent',
   },
   header: {
     flexDirection: 'row',

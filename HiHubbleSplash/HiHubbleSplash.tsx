@@ -51,12 +51,14 @@ import Svg, {
   Stop,
 } from 'react-native-svg';
 
+const AnimatedCircle = Animated.createAnimatedComponent(Circle);
+
 /* ------------------------------------------------------------------ */
 /* Types                                                              */
 /* ------------------------------------------------------------------ */
 
 export type HiHubbleSplashProps = {
-  /** 'auto' follows the phone's dark mode. Default 'auto'. */
+  /** 'auto' follows the phone's dark mode. Default 'light'. */
   theme?: 'auto' | 'light' | 'dark';
   /** Splash stays until this is true / resolves (and minDuration has passed). Default true. */
   ready?: boolean | Promise<unknown>;
@@ -238,7 +240,7 @@ let seenThisSession = false;
 /* ------------------------------------------------------------------ */
 
 export default function HiHubbleSplash({
-  theme = 'auto',
+  theme = 'light',
   ready = true,
   minDuration = 2700,
   maxDuration = 9000,
@@ -980,8 +982,6 @@ export default function HiHubbleSplash({
     </Animated.View>
   );
 }
-
-const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
 const styles = StyleSheet.create({
   root: { zIndex: 9999, elevation: 9999, overflow: 'hidden' },

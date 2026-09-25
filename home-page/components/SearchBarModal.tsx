@@ -8,8 +8,9 @@ import {
   ScrollView,
   Image,
 } from 'react-native';
-import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather, Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 
 const RECENT_SEARCHES = [
   'Alex Rivers',
@@ -66,7 +67,18 @@ export default function SearchBarModal({
   };
 
   return (
-    <SafeAreaProvider style={[styles.overlay, isDark && styles.overlayDark]}>
+    <View style={[styles.overlay, isDark && styles.overlayDark]}>
+      {/* Atmosphere Background Gradient like in Home Page */}
+      <LinearGradient
+        colors={
+          isDark
+            ? ['#140C2C', '#1B0E3C', '#0A0518']
+            : ['#E5F0FF', '#D8E8FC', '#C8DFFA']
+        }
+        start={{ x: 0.5, y: 0 }}
+        end={{ x: 0.5, y: 1 }}
+        style={StyleSheet.absoluteFill}
+      />
       <SafeAreaView style={styles.safeArea} edges={['top', 'bottom', 'left', 'right']}>
         {/* Search Bar Input Row */}
         <View style={styles.inputRow}>
@@ -202,18 +214,18 @@ export default function SearchBarModal({
         <View style={{ height: 80 }} />
       </ScrollView>
     </SafeAreaView>
-  </SafeAreaProvider>
+  </View>
   );
 }
 
 const styles = StyleSheet.create({
   overlay: {
     ...StyleSheet.absoluteFill,
-    backgroundColor: '#FAF8FE',
+    backgroundColor: '#E5F0FF',
     zIndex: 99,
   },
   overlayDark: {
-    backgroundColor: '#120B26',
+    backgroundColor: '#100824',
   },
   safeArea: {
     flex: 1,

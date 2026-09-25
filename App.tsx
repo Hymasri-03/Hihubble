@@ -89,7 +89,7 @@ export default function App() {
         {/* HiHubble Splash Screen on top */}
         {showSplash && (
           <HiHubbleSplash
-            theme="auto"
+            theme="light"
             ready={fontsLoaded}
             fonts={
               fontsLoaded

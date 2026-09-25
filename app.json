@@ -5,7 +5,16 @@
     "version": "1.0.0",
     "sdkVersion": "57.0.0",
     "orientation": "portrait",
-    "userInterfaceStyle": "automatic",
+    "userInterfaceStyle": "light",
+    "backgroundColor": "#FFFFFF",
+    "android": {
+      "userInterfaceStyle": "light",
+      "backgroundColor": "#FFFFFF"
+    },
+    "ios": {
+      "userInterfaceStyle": "light",
+      "backgroundColor": "#FFFFFF"
+    },
     "plugins": [
       "expo-asset",
       [

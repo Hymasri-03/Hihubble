@@ -1,0 +1,117 @@
+/* =========================================================================
+   Hi-Hubble Global Popup & Modal Styling System
+   Applies glassmorphic blur, smooth entrance animations, ambient purple glows,
+   custom sleek scrollbars, and premium responsive dialog styling across every page.
+   ========================================================================= */
+
+/* Modal Backdrop Blur & Glassmorphism */
+[data-modal-overlay="true"],
+.modal-overlay-custom,
+div[style*="rgba(0, 0, 0, 0.6)"],
+div[style*="rgba(0, 0, 0, 0.65)"],
+div[style*="rgba(0, 0, 0, 0.7)"],
+div[style*="rgba(0, 0, 0, 0.72)"],
+div[style*="rgba(0, 0, 0, 0.75)"],
+div[style*="rgba(5, 3, 15, 0.72)"],
+div[style*="rgba(5, 3, 15, 0.75)"] {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  backdrop-filter: blur(14px) saturate(1.45) !important;
+  -webkit-backdrop-filter: blur(14px) saturate(1.45) !important;
+  background-color: rgba(5, 3, 15, 0.74) !important;
+  padding: 16px !important;
+  box-sizing: border-box !important;
+  transition: opacity 0.25s ease-out !important;
+  z-index: 9999 !important;
+}
+
+/* Modal Card Pop-in Animation & Ambient Glow */
+@keyframes hiHubbleModalIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.95) translateY(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.modal-card-custom,
+[data-modal-card="true"] {
+  animation: hiHubbleModalIn 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+  box-shadow: 0 25px 65px -12px rgba(124, 58, 237, 0.35), 
+              0 0 0 1px rgba(124, 58, 237, 0.2),
+              0 10px 30px -4px rgba(0, 0, 0, 0.45) !important;
+  margin: auto !important;
+  max-width: min(520px, calc(100vw - 32px)) !important;
+  max-height: min(90vh, 840px) !important;
+  box-sizing: border-box !important;
+  border-radius: 26px !important;
+  transform-origin: center center !important;
+  transition: transform 0.2s ease, box-shadow 0.2s ease !important;
+}
+
+/* Custom Scrollbar for all popup scroll views */
+*::-webkit-scrollbar {
+  width: 6px !important;
+  height: 6px !important;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent !important;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: rgba(124, 58, 237, 0.4) !important;
+  border-radius: 999px !important;
+  transition: background 0.2s ease !important;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: rgba(124, 58, 237, 0.8) !important;
+}
+
+/* Smooth Focus States for Inputs & TextAreas */
+input:focus,
+textarea:focus,
+input[type="text"]:focus {
+  outline: none !important;
+  border-color: #7C3AED !important;
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.22) !important;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
+}
+
+/* Touch, Hover & Micro-Interactions on Popup Buttons */
+button,
+[role="button"],
+.clickable {
+  cursor: pointer !important;
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  transition: opacity 0.16s ease, transform 0.16s ease !important;
+}
+
+button:active,
+[role="button"]:active {
+  transform: scale(0.98) !important;
+}
+
+/* Smooth horizontal scroll snapping for swipeable carousels */
+.swipe-carousel-scroll {
+  scroll-snap-type: x mandatory !important;
+  -webkit-overflow-scrolling: touch !important;
+}
+
+.swipe-carousel-item {
+  scroll-snap-align: center !important;
+  scroll-snap-stop: always !important;
+}
+
+/* Prevent unwanted browser outlines */
+*:focus:not(:focus-visible) {
+  outline: none !important;
+}
+

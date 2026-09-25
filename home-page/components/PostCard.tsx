@@ -13,16 +13,24 @@ import Svg, { Path, Defs, RadialGradient, Stop } from 'react-native-svg';
 
 export type PostData = {
   id: string;
-  authorName: string;
-  authorAvatar: string;
+  authorName?: string;
+  author?: string;
+  handle?: string;
+  authorAvatar?: string;
+  avatar?: string;
   timeAgo: string;
   caption: string;
   mediaUri: string;
+  additionalImages?: string[];
   isVideo?: boolean;
-  likes: string;
-  comments: string;
-  shares: string;
-  bookmarks: string;
+  likes?: string | number;
+  likesCount?: number;
+  comments?: string | number;
+  commentsCount?: number;
+  shares?: string | number;
+  sharesCount?: number;
+  bookmarks?: string | number;
+  tags?: string[];
 };
 
 function GlowHeart({
@@ -72,9 +80,11 @@ interface HeartParticle {
 export default function PostCard({
   post,
   isDark,
+  onShare,
 }: {
   post: PostData;
   isDark?: boolean;
+  onShare?: (post: PostData) => void;
 }) {
   const [liked, setLiked] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -144,16 +154,41 @@ export default function PostCard({
     }
   };
 
+  const authorName = post.authorName || post.author || 'Hubber';
+  const authorAvatar =
+    post.authorAvatar ||
+    post.avatar ||
+    'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80';
+  const likesCount =
+    post.likes !== undefined
+      ? String(post.likes)
+      : post.likesCount !== undefined
+      ? String(post.likesCount)
+      : '0';
+  const sharesCount =
+    post.shares !== undefined
+      ? String(post.shares)
+      : post.sharesCount !== undefined
+      ? String(post.sharesCount)
+      : '0';
+
   return (
     <View style={[styles.card, isDark && styles.cardDark]}>
       {/* Author Header */}
       <View style={styles.headerRow}>
         <View style={styles.authorGroup}>
-          <Image source={{ uri: post.authorAvatar }} style={styles.authorAvatar} />
+          <Image source={{ uri: authorAvatar }} style={styles.authorAvatar} />
           <View style={styles.authorText}>
-            <Text style={[styles.authorName, isDark && styles.textLight]}>
-              {post.authorName}
-            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <Text style={[styles.authorName, isDark && styles.textLight]}>
+                {authorName}
+              </Text>
+              {post.handle && (
+                <Text style={{ fontSize: 12, color: isDark ? '#A99BD1' : '#7E6F9F' }}>
+                  {post.handle}
+                </Text>
+              )}
+            </View>
             <View style={styles.timeRow}>
               <Text style={[styles.timeText, isDark && styles.timeTextDark]}>
                 {post.timeAgo}
@@ -201,23 +236,22 @@ export default function PostCard({
 
         {/* ── Overlaid Right Action Bar (ON the post) ── */}
         <View style={styles.onPostActions}>
-          {/* Like Button with Popups */}
+          {/* Like Button */}
           <View style={styles.actionItemWrap}>
-            {/* Animated heart popups bursting from like button */}
+            {/* Heart burst animations */}
             {heartPops.map((h) => {
               const translateY = h.anim.interpolate({
                 inputRange: [0, 1],
-                outputRange: [0, -120],
+                outputRange: [0, -80],
               });
               const scale = h.anim.interpolate({
                 inputRange: [0, 0.2, 0.7, 1],
-                outputRange: [0.4, 1.3, 1.1, 0],
+                outputRange: [0.4, 1.2, 1.0, 0],
               });
               const opacity = h.anim.interpolate({
                 inputRange: [0, 0.1, 0.7, 1],
                 outputRange: [0, 1, 0.9, 0],
               });
-
               return (
                 <Animated.View
                   key={h.id}
@@ -235,7 +269,7 @@ export default function PostCard({
                     },
                   ]}
                 >
-                  <GlowHeart id={`pop-${h.id}`} size={28} />
+                  <GlowHeart id={`pop-${h.id}`} size={26} />
                 </Animated.View>
               );
             })}
@@ -248,11 +282,10 @@ export default function PostCard({
               <Ionicons
                 name={liked ? 'heart' : 'heart-outline'}
                 size={27}
-                color={liked ? '#FF2D6C' : '#FFFFFF'}
+                color={liked ? '#EF4444' : '#FFFFFF'}
               />
-              {/* Color of likes count matches others */}
-              <Text style={[styles.actionCount, liked && { color: '#FF4A9A' }]}>
-                {post.likes}
+              <Text style={[styles.actionCount, liked && { color: '#F87171' }]}>
+                {likesCount}
               </Text>
             </TouchableOpacity>
           </View>
@@ -268,13 +301,18 @@ export default function PostCard({
           </TouchableOpacity>
 
           {/* Share Button */}
-          <TouchableOpacity style={styles.actionBtn} activeOpacity={0.7}>
+          <TouchableOpacity
+            style={styles.actionBtn}
+            activeOpacity={0.7}
+            onPress={() => onShare?.(post)}
+          >
             <Feather
               name="send"
               size={23}
               color="#FFFFFF"
               style={{ transform: [{ rotate: '15deg' }] }}
             />
+            <Text style={styles.actionCount}>{sharesCount}</Text>
           </TouchableOpacity>
 
           {/* Bookmark Button */}
@@ -478,6 +516,7 @@ const styles = StyleSheet.create({
   actionItemWrap: {
     position: 'relative',
     alignItems: 'center',
+    overflow: 'visible',   // hearts burst out above — keep visible but clamp zIndex
   },
   actionBtn: {
     alignItems: 'center',

@@ -3,12 +3,12 @@ import {
   StyleSheet,
   View,
   TouchableOpacity,
+  Pressable,
   Image,
   useWindowDimensions,
   Animated,
   PanResponder,
   BackHandler,
-  TouchableWithoutFeedback,
 } from 'react-native';
 import { Ionicons, Feather } from '@expo/vector-icons';
 
@@ -144,6 +144,13 @@ export default function ArcBottomNav({
   const [internalActiveTab, setInternalActiveTab] = useState<TabKey>('home');
   const activeTab = externalActiveTab ?? internalActiveTab;
 
+  // Sync internalActiveTab whenever externalActiveTab changes
+  useEffect(() => {
+    if (externalActiveTab) {
+      setInternalActiveTab(externalActiveTab);
+    }
+  }, [externalActiveTab]);
+
   const [isOpen, setIsOpen] = useState(false);
   const { width, height } = useWindowDimensions();
 
@@ -234,13 +241,14 @@ export default function ArcBottomNav({
   ).current;
 
   const handleTabPress = (tab: TabKey) => {
+    // Close the category fan immediately
+    setIsOpen(false);
     setInternalActiveTab(tab);
+    // Trigger tab switch synchronously
     onSelectTab?.(tab);
     if (tab === 'search' && onOpenSearch) {
       onOpenSearch();
     }
-    // Close the category fan once tapped
-    setIsOpen(false);
   };
 
   const iconColor = (tab: TabKey) => {
@@ -259,9 +267,11 @@ export default function ArcBottomNav({
     <View pointerEvents="box-none" style={styles.fullScreenOverlay}>
       {/* Tap backdrop to close categories (1-step back dismiss) */}
       {isOpen && (
-        <TouchableWithoutFeedback onPress={() => setIsOpen(false)}>
-          <View style={StyleSheet.absoluteFill} />
-        </TouchableWithoutFeedback>
+        <Pressable
+          onPress={() => setIsOpen(false)}
+          style={[StyleSheet.absoluteFill, styles.backdrop]}
+          accessibilityLabel="Dismiss categories"
+        />
       )}
 
       {/* ── Category Buttons — snug arc with translucent watermark bubbles, no category names ── */}
@@ -285,6 +295,8 @@ export default function ArcBottomNav({
             <TouchableOpacity
               key={tab.key}
               activeOpacity={0.75}
+              delayPressIn={0}
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
               onPress={() => handleTabPress(tab.key)}
               style={[
                 styles.watermarkButton,
@@ -294,6 +306,7 @@ export default function ArcBottomNav({
                 { left, top },
               ]}
               accessibilityLabel={tab.label}
+              testID={`category-tab-${tab.key}`}
             >
               {tab.icon(iconColor(tab.key), isActive)}
             </TouchableOpacity>
@@ -324,7 +337,16 @@ export default function ArcBottomNav({
 const styles = StyleSheet.create({
   fullScreenOverlay: {
     ...StyleSheet.absoluteFill,
-    zIndex: 999,
+    zIndex: 9999,
+    elevation: 50,
+  },
+
+  // Invisible backdrop that absorbs clicks outside the category bubbles
+  backdrop: {
+    ...StyleSheet.absoluteFill,
+    backgroundColor: 'transparent',
+    zIndex: 10000,
+    elevation: 55,
   },
 
   // Translucent watermark bubble background to highlight each category icon
@@ -338,12 +360,12 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255, 255, 255, 0.95)',
     alignItems: 'center',
     justifyContent: 'center',
-    zIndex: 1000,
+    zIndex: 10001,
+    elevation: 60,
     shadowColor: '#6535EA',
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.18,
     shadowRadius: 6,
-    elevation: 4,
   },
   watermarkButtonDark: {
     backgroundColor: 'rgba(38, 22, 80, 0.78)',
@@ -358,7 +380,7 @@ const styles = StyleSheet.create({
     shadowColor: '#6535EA',
     shadowOpacity: 0.4,
     shadowRadius: 8,
-    elevation: 6,
+    elevation: 62,
   },
   watermarkButtonActiveDark: {
     backgroundColor: 'rgba(56, 32, 115, 0.94)',
@@ -376,14 +398,14 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF', // Mascot background is white
     alignItems: 'center',
     justifyContent: 'center',
-    zIndex: 1001,
+    zIndex: 10002,
+    elevation: 65,
     borderWidth: 2,
     borderColor: 'rgba(101, 53, 234, 0.25)',
     shadowColor: '#6535EA',
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.35,
     shadowRadius: 14,
-    elevation: 10,
     overflow: 'hidden',
   },
   mascotImg: {
