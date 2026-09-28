@@ -67,6 +67,13 @@ export const SettingsModal = ({
   const colors = THEME[themeMode as 'light' | 'dark'];
   const [activeSubScreen, setActiveSubScreen] = useState<SubScreen>('main');
 
+  // Branded confirmation popup state (replaces system alerts with logo-based UI)
+  interface ConfirmModalState {
+    type: 'unblock' | 'unrestrict' | 'delete_account' | 'logout';
+    targetHandle?: string;
+  }
+  const [confirmModal, setConfirmModal] = useState<ConfirmModalState | null>(null);
+
   // Hubbs Settings state
   const [privateHubs, setPrivateHubs] = useState(false);
   const [hdUploads, setHdUploads] = useState(true);
@@ -463,20 +470,7 @@ export const SettingsModal = ({
     };
 
     const handleUnblock = (handle: string) => {
-      Alert.alert('Unblock User', `Are you sure you want to unblock ${handle}?`, [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Unblock',
-          style: 'destructive',
-          onPress: () => {
-            if (onRemoveBlocked) {
-              onRemoveBlocked(handle);
-            }
-            setInternalBlockedUsers((prev) => prev.filter((u) => u !== handle));
-            Alert.alert('Unblocked', `${handle} has been unblocked.`);
-          },
-        },
-      ]);
+      setConfirmModal({ type: 'unblock', targetHandle: handle });
     };
 
     return (
@@ -573,19 +567,7 @@ export const SettingsModal = ({
     };
 
     const handleUnrestrict = (handle: string) => {
-      Alert.alert('Unrestrict User', `Are you sure you want to remove restrictions for ${handle}?`, [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Unrestrict',
-          onPress: () => {
-            if (onRemoveRestricted) {
-              onRemoveRestricted(handle);
-            }
-            setInternalRestrictedUsers((prev) => prev.filter((u) => u !== handle));
-            Alert.alert('Unrestricted', `${handle} is no longer restricted.`);
-          },
-        },
-      ]);
+      setConfirmModal({ type: 'unrestrict', targetHandle: handle });
     };
 
     return (
@@ -675,39 +657,11 @@ export const SettingsModal = ({
   };
 
   const handleLogout = () => {
-    Alert.alert(
-      'Log Out',
-      'Are you sure you want to log out of your Hi-Hubble account?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Log Out',
-          style: 'destructive',
-          onPress: () => {
-            handleClose();
-            onLogout?.();
-          },
-        },
-      ]
-    );
+    setConfirmModal({ type: 'logout' });
   };
 
   const handleDeleteAccount = () => {
-    Alert.alert(
-      'Delete Account',
-      'Are you sure you want to permanently delete your account? All your hubs, clips, and profile data will be permanently removed. This action cannot be undone.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete Forever',
-          style: 'destructive',
-          onPress: () => {
-            handleClose();
-            onDeleteAccount?.();
-          },
-        },
-      ]
-    );
+    setConfirmModal({ type: 'delete_account' });
   };
 
   return (
@@ -717,6 +671,14 @@ export const SettingsModal = ({
           style={[styles.modalCard, { backgroundColor: colors.cardBg, borderColor: colors.border }]}
           data-modal-card="true"
         >
+          {/* Logo Design Gradient Accent Bar */}
+          <LinearGradient
+            colors={['#6535EA', '#8B5CF6', '#FF3B8A']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.logoAccentBar}
+          />
+
           {/* Popup Drag Handle */}
           <View style={styles.dragHandleContainer}>
             <View style={[styles.dragHandle, { backgroundColor: colors.border }]} />
@@ -740,7 +702,17 @@ export const SettingsModal = ({
                 {screenTitles[activeSubScreen]}
               </Text>
             </View>
-            <TouchableOpacity activeOpacity={0.7} onPress={handleClose} style={styles.closeBtn}>
+            <TouchableOpacity
+              activeOpacity={0.7}
+              onPress={() => {
+                if (activeSubScreen !== 'main') {
+                  setActiveSubScreen('main');
+                } else {
+                  handleClose();
+                }
+              }}
+              style={styles.closeBtn}
+            >
               <Ionicons name="close" size={22} color={colors.textMuted} />
             </TouchableOpacity>
           </View>
@@ -814,7 +786,6 @@ export const SettingsModal = ({
               <TouchableOpacity
                 activeOpacity={0.7}
                 onPress={() => {
-                  onClose();
                   onEditProfile();
                 }}
                 style={[styles.menuItem, { borderBottomColor: colors.border }]}
@@ -1056,6 +1027,139 @@ export const SettingsModal = ({
           )}
         </View>
       </View>
+
+      {/* Branded Confirmation Popup Modal based on HiHubble Logo Design */}
+      {confirmModal !== null && (
+        <Modal
+          visible={true}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setConfirmModal(null)}
+        >
+          <View style={styles.confirmModalOverlay} data-modal-overlay="true">
+            <View
+              style={[
+                styles.confirmModalCard,
+                { backgroundColor: colors.cardBg, borderColor: colors.border },
+              ]}
+              data-modal-card="true"
+            >
+              {/* Logo Design Gradient Top Accent Bar */}
+              <LinearGradient
+                colors={['#6535EA', '#8B5CF6', '#FF3B8A']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.popupLogoGradientBar}
+              />
+
+              {/* Close Button ("into mark" - 1 step back: closes this confirmation dialog) */}
+              <TouchableOpacity
+                activeOpacity={0.7}
+                onPress={() => setConfirmModal(null)}
+                style={styles.confirmCloseBtn}
+              >
+                <Ionicons name="close" size={20} color={colors.textMuted} />
+              </TouchableOpacity>
+
+              {/* Logo / Mascot Brand Motif */}
+              <View style={styles.logoBadgeContainer}>
+                <Image
+                  source={require('../../assets/logo.png')}
+                  style={styles.popupLogoImage}
+                  resizeMode="contain"
+                />
+              </View>
+
+              {/* Content depending on action type */}
+              <View style={styles.confirmModalBody}>
+                <Text style={[styles.confirmModalTitle, { color: colors.textPrimary }]}>
+                  {confirmModal.type === 'unblock'
+                    ? `Unblock ${confirmModal.targetHandle}?`
+                    : confirmModal.type === 'unrestrict'
+                    ? `Unrestrict ${confirmModal.targetHandle}?`
+                    : confirmModal.type === 'delete_account'
+                    ? 'Delete Account Forever?'
+                    : 'Log Out of Hi-Hubble?'}
+                </Text>
+
+                <Text style={[styles.confirmModalDesc, { color: colors.textSecondary }]}>
+                  {confirmModal.type === 'unblock'
+                    ? `${confirmModal.targetHandle} will be able to see your hubs, clips, and cosmic profile on Hi-Hubble again.`
+                    : confirmModal.type === 'unrestrict'
+                    ? `Restrictions will be removed. Their comments on your hubs will be visible to everyone.`
+                    : confirmModal.type === 'delete_account'
+                    ? 'All your hubs, clips, and profile data will be permanently removed. This action cannot be undone.'
+                    : 'You will need to log back in to access your cosmic account and feed.'}
+                </Text>
+
+                <View style={styles.confirmModalButtonsRow}>
+                  <TouchableOpacity
+                    activeOpacity={0.75}
+                    onPress={() => setConfirmModal(null)}
+                    style={[
+                      styles.confirmModalCancelBtn,
+                      { borderColor: colors.border, backgroundColor: colors.statCardBg },
+                    ]}
+                  >
+                    <Text style={[styles.confirmModalCancelText, { color: colors.textPrimary }]}>
+                      Cancel
+                    </Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    activeOpacity={0.85}
+                    onPress={() => {
+                      if (confirmModal.type === 'unblock' && confirmModal.targetHandle) {
+                        const h = confirmModal.targetHandle;
+                        if (onRemoveBlocked) onRemoveBlocked(h);
+                        setInternalBlockedUsers((prev) => prev.filter((u) => u !== h));
+                        setConfirmModal(null);
+                        // No 2nd popup message!
+                      } else if (confirmModal.type === 'unrestrict' && confirmModal.targetHandle) {
+                        const h = confirmModal.targetHandle;
+                        if (onRemoveRestricted) onRemoveRestricted(h);
+                        setInternalRestrictedUsers((prev) => prev.filter((u) => u !== h));
+                        setConfirmModal(null);
+                        // No 2nd popup message!
+                      } else if (confirmModal.type === 'delete_account') {
+                        setConfirmModal(null);
+                        handleClose();
+                        onDeleteAccount?.();
+                        // No 2nd popup message!
+                      } else if (confirmModal.type === 'logout') {
+                        setConfirmModal(null);
+                        handleClose();
+                        onLogout?.();
+                      }
+                    }}
+                    style={[
+                      styles.confirmModalActionBtn,
+                      {
+                        backgroundColor:
+                          confirmModal.type === 'delete_account'
+                            ? '#EF4444'
+                            : confirmModal.type === 'logout'
+                            ? '#DC2626'
+                            : BRAND_COLORS.purplePrimary,
+                      },
+                    ]}
+                  >
+                    <Text style={styles.confirmModalActionText}>
+                      {confirmModal.type === 'unblock'
+                        ? 'Unblock'
+                        : confirmModal.type === 'unrestrict'
+                        ? 'Unrestrict'
+                        : confirmModal.type === 'delete_account'
+                        ? 'Delete Forever'
+                        : 'Log Out'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+          </View>
+        </Modal>
+      )}
     </Modal>
   );
 };
@@ -1357,6 +1461,107 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     paddingVertical: 20,
     fontStyle: 'italic',
+  },
+  logoAccentBar: {
+    width: '100%',
+    height: 4,
+  },
+  confirmModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(5, 3, 15, 0.74)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 16,
+  },
+  confirmModalCard: {
+    width: '100%',
+    maxWidth: 420,
+    borderRadius: 24,
+    borderWidth: 1,
+    overflow: 'hidden',
+    shadowColor: BRAND_COLORS.purplePrimary,
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.35,
+    shadowRadius: 24,
+    elevation: 12,
+  },
+  popupLogoGradientBar: {
+    width: '100%',
+    height: 5,
+  },
+  confirmCloseBtn: {
+    position: 'absolute',
+    top: 14,
+    right: 14,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 10,
+  },
+  logoBadgeContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 22,
+    marginBottom: 8,
+  },
+  popupLogoImage: {
+    width: 140,
+    height: 48,
+  },
+  confirmModalBody: {
+    paddingHorizontal: 22,
+    paddingBottom: 22,
+    alignItems: 'center',
+  },
+  confirmModalTitle: {
+    fontSize: 16.5,
+    fontWeight: '800',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  confirmModalDesc: {
+    fontSize: 13,
+    lineHeight: 19,
+    textAlign: 'center',
+    marginBottom: 20,
+    paddingHorizontal: 8,
+  },
+  confirmModalButtonsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    width: '100%',
+  },
+  confirmModalCancelBtn: {
+    flex: 1,
+    paddingVertical: 11,
+    borderRadius: 14,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  confirmModalCancelText: {
+    fontSize: 13.5,
+    fontWeight: '700',
+  },
+  confirmModalActionBtn: {
+    flex: 1,
+    paddingVertical: 11,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: BRAND_COLORS.purplePrimary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  confirmModalActionText: {
+    color: '#FFFFFF',
+    fontSize: 13.5,
+    fontWeight: '700',
   },
 });
 

@@ -31,7 +31,7 @@ export default function ProfileView({
         isVerified: true,
         roleBadge: 'Hubber on Hi-Hubble',
         joinedDate: 'Joined September 2026',
-        phoneNumber: '+1 (555) 234-5678',
+        phoneNumber: '+91 98765 43210',
         preferredOtpMethod: 'SMS',
       }
     : undefined;

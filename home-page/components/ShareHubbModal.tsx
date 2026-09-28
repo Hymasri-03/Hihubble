@@ -139,7 +139,7 @@ function unlockMobileAudio() {
     audio.play().then(() => {
       audio.pause();
       isAudioUnlocked = true;
-    }).catch(() => {});
+    }).catch(() => { });
   }
 }
 
@@ -173,7 +173,7 @@ export const playAudioPreview = (url: string, loop = false): void => {
         playPromise.catch((err: any) => {
           // Autoplay policy prevented playback on mobile — retry on first user tap!
           const resumeOnTap = () => {
-            audio.play().catch(() => {});
+            audio.play().catch(() => { });
             window.removeEventListener('touchstart', resumeOnTap);
             window.removeEventListener('click', resumeOnTap);
           };
@@ -188,7 +188,7 @@ export const playAudioPreview = (url: string, loop = false): void => {
       globalWebAudio = new (window as any).Audio(url);
       globalWebAudio.loop = loop;
       globalWebAudio.volume = 1.0;
-      globalWebAudio.play().catch(() => {});
+      globalWebAudio.play().catch(() => { });
     }
   } catch (err) {
     console.log('Audio init notice:', err);
@@ -218,7 +218,7 @@ export const stopAudioPreview = (): void => {
     }
     if (globalWebAudio) {
       globalWebAudio.pause();
-      try { globalWebAudio.currentTime = 0; } catch (_) {}
+      try { globalWebAudio.currentTime = 0; } catch (_) { }
       globalWebAudio = null;
     }
   } catch (err) {
@@ -542,7 +542,7 @@ export const FILTER_STYLES: Record<string, string> = {
   Warm: 'rgba(255, 150, 0, 0.15)',
   Cool: 'rgba(0, 100, 255, 0.15)',
   Vintage: 'rgba(150, 100, 50, 0.25)',
-  'Black & White': 'rgba(120, 120, 120, 0.4)', 
+  'Black & White': 'rgba(120, 120, 120, 0.4)',
   HDR: 'rgba(0, 0, 0, 0.1)',
   Cinematic: 'rgba(20, 20, 30, 0.25)',
   Soft: 'rgba(255, 230, 200, 0.15)',
@@ -890,8 +890,8 @@ export function VideoPreviewPlayer({
             {duration != null
               ? `${Math.round(duration)}s • ${isPlaying ? 'Tap to pause' : 'Paused'}`
               : isPlaying
-              ? 'Tap to pause'
-              : 'Paused'}
+                ? 'Tap to pause'
+                : 'Paused'}
           </Text>
         </View>
       )}
@@ -962,7 +962,7 @@ function AdjustSliderItem({
         newVal = Math.max(min, Math.min(max, newVal));
         onChange(newVal);
       },
-      onPanResponderRelease: () => {},
+      onPanResponderRelease: () => { },
     })
   ).current;
 
@@ -2578,13 +2578,13 @@ export default function ShareHubbModal({
         prev.map((t) =>
           t.id === selectedTextId
             ? {
-                ...t,
-                text: textToCommit,
-                color: textColor,
-                fontFamily: textFont,
-                rotation: textRotation,
-                scale: textScale,
-              }
+              ...t,
+              text: textToCommit,
+              color: textColor,
+              fontFamily: textFont,
+              rotation: textRotation,
+              scale: textScale,
+            }
             : t
         )
       );
@@ -2633,13 +2633,13 @@ export default function ShareHubbModal({
         nextOverlays = nextOverlays.map((t) =>
           t.id === selectedTextId
             ? {
-                ...t,
-                text: textToCommit,
-                color: textColor,
-                fontFamily: textFont,
-                rotation: textRotation,
-                scale: textScale,
-              }
+              ...t,
+              text: textToCommit,
+              color: textColor,
+              fontFamily: textFont,
+              rotation: textRotation,
+              scale: textScale,
+            }
             : t
         );
       } else {
@@ -2765,7 +2765,7 @@ export default function ShareHubbModal({
       const dy = touches[0].pageY - touches[1].pageY;
       const dist = Math.hypot(dx, dy);
       const ratio = dist / cropPinchStartDistRef.current;
-      const newZoom = Math.min(300, Math.max(100, Math.round(cropPinchStartZoomRef.current * ratio)));
+      const newZoom = Math.min(300, Math.max(40, Math.round(cropPinchStartZoomRef.current * ratio)));
       setZoomLevel(newZoom);
     }
   };
@@ -2787,8 +2787,8 @@ export default function ShareHubbModal({
   };
 
   const handleZoomIn = () => setZoomLevel(prev => Math.min(prev + 10, 300));
-  const handleZoomOut = () => setZoomLevel(prev => Math.max(prev - 10, 100));
-  const zoomPercent = (zoomLevel - 100) / 200;
+  const handleZoomOut = () => setZoomLevel(prev => Math.max(prev - 10, 40));
+  const zoomPercent = (zoomLevel - 40) / 260;
 
   const handleApplyCrop = () => {
     setAppliedCrop({ aspect: aspectRatio, zoom: zoomLevel });
@@ -2830,10 +2830,10 @@ export default function ShareHubbModal({
         currentZoomRef.current = zoomLevel; // snapshot on start
       },
       onPanResponderMove: (evt, gestureState) => {
-        const deltaZoom = (gestureState.dx / 150) * 200; // 150px track length approx
+        const deltaZoom = (gestureState.dx / 150) * 260;
         let newZoom = Math.round(currentZoomRef.current + deltaZoom);
         if (newZoom > 300) newZoom = 300;
-        if (newZoom < 100) newZoom = 100;
+        if (newZoom < 40) newZoom = 40;
         setZoomLevel(newZoom);
       },
     })
@@ -2985,13 +2985,13 @@ export default function ShareHubbModal({
         finalTexts = finalTexts.map((t) =>
           t.id === selectedTextId
             ? {
-                ...t,
-                text: textToCommit,
-                color: textColor,
-                fontFamily: textFont,
-                rotation: textRotation,
-                scale: textScale,
-              }
+              ...t,
+              text: textToCommit,
+              color: textColor,
+              fontFamily: textFont,
+              rotation: textRotation,
+              scale: textScale,
+            }
             : t
         );
       } else {
@@ -4039,7 +4039,7 @@ export default function ShareHubbModal({
             {selectedMedia ? (
               <View style={styles.mediaPreviewSquareContainer}>
                 <View style={[
-                  styles.mediaPreviewSquare, 
+                  styles.mediaPreviewSquare,
                   isDark && styles.mediaPreviewSquareDark,
                 ]}>
                   {selectedMedia.type === 'video' ? (
@@ -4295,11 +4295,11 @@ export default function ShareHubbModal({
                       setSelectedLocation((prev) =>
                         prev
                           ? {
-                              ...prev,
-                              placedOnMedia: !prev.placedOnMedia,
-                              x: prev.x ?? 50,
-                              y: prev.y ?? 25,
-                            }
+                            ...prev,
+                            placedOnMedia: !prev.placedOnMedia,
+                            x: prev.x ?? 50,
+                            y: prev.y ?? 25,
+                          }
                           : null
                       );
                     }}
@@ -4390,19 +4390,19 @@ export default function ShareHubbModal({
                         size={22}
                         color={
                           (tool.id === 'music' && selectedMusic) ||
-                          (tool.id === 'location' && selectedLocation)
+                            (tool.id === 'location' && selectedLocation)
                             ? '#7C3AED'
                             : isDark
-                            ? '#C4A8FF'
-                            : '#6535EA'
+                              ? '#C4A8FF'
+                              : '#6535EA'
                         }
                       />
                       {((tool.id === 'music' && selectedMusic) ||
                         (tool.id === 'location' && selectedLocation)) && (
-                        <View style={styles.musicToolBadge}>
-                          <Feather name="check" size={10} color="#FFFFFF" />
-                        </View>
-                      )}
+                          <View style={styles.musicToolBadge}>
+                            <Feather name="check" size={10} color="#FFFFFF" />
+                          </View>
+                        )}
                     </View>
                     <Text style={[styles.toolLabelNew, isDark && styles.toolLabelNewDark]}>
                       {tool.label}
@@ -4731,12 +4731,12 @@ export default function ShareHubbModal({
           animationType="fade"
           onRequestClose={() => setIsCameraModalOpen(false)}
         >
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.cameraModalBackdrop}
             activeOpacity={1}
             onPress={() => setIsCameraModalOpen(false)}
           >
-            <View 
+            <View
               style={[styles.cameraModalSheet, isDark && styles.cameraModalSheetDark]}
               onStartShouldSetResponder={() => true}
             >
@@ -4926,42 +4926,42 @@ export default function ShareHubbModal({
                 ]}
                 {...(Platform.OS === 'web'
                   ? {
-                      onPointerDown: (e: any) => {
-                        const rect = e.currentTarget.getBoundingClientRect();
-                        const updatePos = (clientX: number) => {
-                          if (rect && rect.width > 0) {
-                            const pct = Math.max(
-                              0,
-                              Math.min(
-                                100,
-                                Math.round(((clientX - rect.left) / rect.width) * 100)
-                              )
-                            );
-                            setPreviewSliderPos(pct);
-                          }
-                        };
+                    onPointerDown: (e: any) => {
+                      const rect = e.currentTarget.getBoundingClientRect();
+                      const updatePos = (clientX: number) => {
+                        if (rect && rect.width > 0) {
+                          const pct = Math.max(
+                            0,
+                            Math.min(
+                              100,
+                              Math.round(((clientX - rect.left) / rect.width) * 100)
+                            )
+                          );
+                          setPreviewSliderPos(pct);
+                        }
+                      };
 
-                        const startX = e.clientX ?? e.touches?.[0]?.clientX;
-                        if (startX !== undefined) updatePos(startX);
+                      const startX = e.clientX ?? e.touches?.[0]?.clientX;
+                      if (startX !== undefined) updatePos(startX);
 
-                        const onMove = (ev: any) => {
-                          const x = ev.clientX ?? ev.touches?.[0]?.clientX;
-                          if (x !== undefined) updatePos(x);
-                        };
+                      const onMove = (ev: any) => {
+                        const x = ev.clientX ?? ev.touches?.[0]?.clientX;
+                        if (x !== undefined) updatePos(x);
+                      };
 
-                        const onEnd = () => {
-                          window.removeEventListener('pointermove', onMove);
-                          window.removeEventListener('pointerup', onEnd);
-                          window.removeEventListener('touchmove', onMove);
-                          window.removeEventListener('touchend', onEnd);
-                        };
+                      const onEnd = () => {
+                        window.removeEventListener('pointermove', onMove);
+                        window.removeEventListener('pointerup', onEnd);
+                        window.removeEventListener('touchmove', onMove);
+                        window.removeEventListener('touchend', onEnd);
+                      };
 
-                        window.addEventListener('pointermove', onMove, { passive: false });
-                        window.addEventListener('pointerup', onEnd);
-                        window.addEventListener('touchmove', onMove, { passive: false });
-                        window.addEventListener('touchend', onEnd);
-                      },
-                    }
+                      window.addEventListener('pointermove', onMove, { passive: false });
+                      window.addEventListener('pointerup', onEnd);
+                      window.addEventListener('touchmove', onMove, { passive: false });
+                      window.addEventListener('touchend', onEnd);
+                    },
+                  }
                   : {})}
               >
                 {/* Top Labels: RAW HUB & EDITED HUB */}
@@ -5102,13 +5102,13 @@ export default function ShareHubbModal({
                     StyleSheet.absoluteFill,
                     Platform.OS === 'web'
                       ? ({
-                          clipPath: `polygon(0 0, ${previewSliderPos}% 0, ${previewSliderPos}% 100%, 0 100%)`,
-                          WebkitClipPath: `polygon(0 0, ${previewSliderPos}% 0, ${previewSliderPos}% 100%, 0 100%)`,
-                        } as any)
+                        clipPath: `polygon(0 0, ${previewSliderPos}% 0, ${previewSliderPos}% 100%, 0 100%)`,
+                        WebkitClipPath: `polygon(0 0, ${previewSliderPos}% 0, ${previewSliderPos}% 100%, 0 100%)`,
+                      } as any)
                       : {
-                          width: `${previewSliderPos}%`,
-                          overflow: 'hidden',
-                        },
+                        width: `${previewSliderPos}%`,
+                        overflow: 'hidden',
+                      },
                   ]}
                   pointerEvents="none"
                 >
@@ -5231,24 +5231,24 @@ export default function ShareHubbModal({
           {/* Editor Header Toolbar */}
           <View style={[styles.editorToolbar, isDark && styles.editorToolbarDark]}>
             <View style={styles.editorToolbarLeft}>
-              <TouchableOpacity 
-                style={[styles.toolbarIconBtn, isDark && styles.toolbarIconBtnDark]} 
+              <TouchableOpacity
+                style={[styles.toolbarIconBtn, isDark && styles.toolbarIconBtnDark]}
                 activeOpacity={0.7}
                 onPress={() => setActiveTool(null)}
                 accessibilityLabel="Back to Share HUBBs"
               >
                 <Feather name="arrow-left" size={17} color={isDark ? '#C4A8FF' : '#666'} />
               </TouchableOpacity>
-              <TouchableOpacity 
-                style={[styles.toolbarIconBtn, isDark && styles.toolbarIconBtnDark]} 
+              <TouchableOpacity
+                style={[styles.toolbarIconBtn, isDark && styles.toolbarIconBtnDark]}
                 activeOpacity={0.7}
                 onPress={handleUndoRotate}
                 accessibilityLabel="Undo Rotate"
               >
                 <Feather name="corner-up-left" size={17} color={isDark ? '#C4A8FF' : '#666'} />
               </TouchableOpacity>
-              <TouchableOpacity 
-                style={[styles.toolbarIconBtn, isDark && styles.toolbarIconBtnDark]} 
+              <TouchableOpacity
+                style={[styles.toolbarIconBtn, isDark && styles.toolbarIconBtnDark]}
                 activeOpacity={0.7}
                 onPress={handleRedoRotate}
                 accessibilityLabel="Redo Rotate"
@@ -5257,8 +5257,8 @@ export default function ShareHubbModal({
               </TouchableOpacity>
 
               {/* Active Category Pill */}
-              <View 
-                style={[styles.toolbarCategoryPill, isDark && styles.toolbarCategoryPillDark]} 
+              <View
+                style={[styles.toolbarCategoryPill, isDark && styles.toolbarCategoryPillDark]}
               >
                 <Feather
                   name={activeTool === 'text' ? 'type' : activeTool === 'stickers' ? 'star' : activeTool === 'adjust' ? 'sliders' : activeTool === 'crop' ? 'crop' : activeTool === 'filters' ? 'aperture' : 'rotate-cw'}
@@ -5266,8 +5266,8 @@ export default function ShareHubbModal({
                   color={isDark ? '#C4A8FF' : '#6535EA'}
                   style={{ marginRight: 5 }}
                 />
-                <Text 
-                  style={[styles.toolbarCategoryText, isDark && styles.toolbarCategoryTextDark]} 
+                <Text
+                  style={[styles.toolbarCategoryText, isDark && styles.toolbarCategoryTextDark]}
                   numberOfLines={1}
                 >
                   {activeTool === 'text' ? 'Text' : activeTool === 'stickers' ? 'Stickers' : activeTool === 'adjust' ? 'Adjust' : activeTool === 'crop' ? 'Crop' : activeTool === 'filters' ? 'Filters' : 'Rotate'}
@@ -5276,8 +5276,8 @@ export default function ShareHubbModal({
             </View>
 
             {/* Done Editing Button - NEVER cut off */}
-            <TouchableOpacity 
-              style={[styles.doneEditingBtn, isDark && styles.doneEditingBtnDark]} 
+            <TouchableOpacity
+              style={[styles.doneEditingBtn, isDark && styles.doneEditingBtnDark]}
               activeOpacity={0.8}
               onPress={() => {
                 if (activeTool === 'text') {
@@ -5295,9 +5295,9 @@ export default function ShareHubbModal({
 
           {/* Main Media Edit Area */}
           <View style={styles.editorMediaArea}>
-            <View 
+            <View
               style={[
-                styles.editorMediaContainer, 
+                styles.editorMediaContainer,
                 ((activeTool === 'crop' && aspectRatio !== 'Free') || (appliedCrop && appliedCrop.aspect !== 'Free'))
                   ? { height: undefined, width: '100%', aspectRatio: getAspectRatioValue(activeTool === 'crop' ? aspectRatio : appliedCrop!.aspect) }
                   : {}
@@ -5306,6 +5306,15 @@ export default function ShareHubbModal({
               onTouchStart={handleCropTouchStart}
               onTouchMove={handleCropTouchMove}
               onTouchEnd={handleCropTouchEnd}
+              // @ts-ignore Web wheel zoom for desktop
+              onWheel={(e: any) => {
+                if (activeTool !== 'crop') return;
+                if (e.deltaY < 0) {
+                  setZoomLevel((z) => Math.min(300, z + 10));
+                } else {
+                  setZoomLevel((z) => Math.max(40, z - 10));
+                }
+              }}
             >
               {selectedMedia?.type === 'video' ? (
                 <VideoPreviewPlayer
@@ -5319,11 +5328,11 @@ export default function ShareHubbModal({
                   style={styles.editorMediaImage}
                 />
               ) : (
-                <Image 
-                  source={{ uri: selectedMedia?.uri || selectedMedia?.thumbnailUri || 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=800' }} 
+                <Image
+                  source={{ uri: selectedMedia?.uri || selectedMedia?.thumbnailUri || 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=800' }}
                   style={[
-                    styles.editorMediaImage, 
-                    { 
+                    styles.editorMediaImage,
+                    {
                       opacity: adjustments.opacity / 100,
                       transform: [
                         { scale: zoomLevel / 100 },
@@ -5331,12 +5340,12 @@ export default function ShareHubbModal({
                       ],
                       ...getAdjustmentsFilterStyle(adjustments),
                     }
-                  ]} 
+                  ]}
                   blurRadius={adjustments.blur}
-                  resizeMode="contain" 
+                  resizeMode="contain"
                 />
               )}
-              
+
               {/* Temperature, Tint & Filter Overlay */}
               <MediaAdjustmentsOverlay adjustments={adjustments} filter={selectedFilter} />
 
@@ -5381,7 +5390,7 @@ export default function ShareHubbModal({
                   isSelected={false}
                   containerWidth={mediaContainerLayout.width}
                   containerHeight={mediaContainerLayout.height}
-                  onSelect={() => {}}
+                  onSelect={() => { }}
                   onDelete={() => {
                     setSelectedLocation((prev) => (prev ? { ...prev, placedOnMedia: false } : null));
                   }}
@@ -5457,7 +5466,7 @@ export default function ShareHubbModal({
               )}
 
               {activeTool === 'crop' && (
-                <View style={[StyleSheet.absoluteFill, styles.cropBoxSimulatorBorder]}>
+                <View style={[StyleSheet.absoluteFill, styles.cropBoxSimulatorBorder]} pointerEvents="none">
                   <View style={[styles.cropHandle, styles.cropHandleTopLeft]} />
                   <View style={[styles.cropHandle, styles.cropHandleTopRight]} />
                   <View style={[styles.cropHandle, styles.cropHandleBottomLeft]} />
@@ -5499,9 +5508,9 @@ export default function ShareHubbModal({
                             style={styles.sheetFilterPreviewImage}
                             resizeMode="cover"
                           />
-                          <View 
-                            style={[StyleSheet.absoluteFill, { backgroundColor: FILTER_STYLES[filter] || 'transparent', borderRadius: 14 }]} 
-                            pointerEvents="none" 
+                          <View
+                            style={[StyleSheet.absoluteFill, { backgroundColor: FILTER_STYLES[filter] || 'transparent', borderRadius: 14 }]}
+                            pointerEvents="none"
                           />
                         </View>
                         <Text style={[styles.sheetFilterName, isSelected && styles.sheetFilterNameActive]}>
@@ -5521,18 +5530,18 @@ export default function ShareHubbModal({
                   <Text style={[styles.sheetTitle, isDark && styles.sheetTitleDark]}>Crop & Aspect</Text>
                 </View>
 
-                {/* Pinch to Zoom Indicator */}
+                {/* Horizontal Zoom in and Zoom out Controls */}
                 <View style={[styles.cropZoomInfoBar, isDark && styles.cropZoomInfoBarDark]}>
                   <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                     <Feather name="maximize-2" size={14} color={isDark ? '#C4A8FF' : '#6535EA'} style={{ marginRight: 6 }} />
                     <Text style={[styles.cropZoomInfoText, isDark && styles.cropZoomInfoTextDark]}>
-                      Pinch to Zoom: <Text style={{ fontWeight: '800' }}>{zoomLevel}%</Text>
+                      Zoom: <Text style={{ fontWeight: '800' }}>{zoomLevel}%</Text>
                     </Text>
                   </View>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                     <TouchableOpacity
                       style={[styles.cropZoomStepBtn, isDark && styles.cropZoomStepBtnDark]}
-                      onPress={() => setZoomLevel((z) => Math.max(100, z - 10))}
+                      onPress={handleZoomOut}
                       activeOpacity={0.7}
                       accessibilityLabel="Zoom out"
                     >
@@ -5540,7 +5549,7 @@ export default function ShareHubbModal({
                     </TouchableOpacity>
                     <TouchableOpacity
                       style={[styles.cropZoomStepBtn, isDark && styles.cropZoomStepBtnDark]}
-                      onPress={() => setZoomLevel((z) => Math.min(300, z + 10))}
+                      onPress={handleZoomIn}
                       activeOpacity={0.7}
                       accessibilityLabel="Zoom in"
                     >
@@ -5556,6 +5565,62 @@ export default function ShareHubbModal({
                       </TouchableOpacity>
                     )}
                   </View>
+                </View>
+
+                {/* Horizontal Zoom Slider Track with Thumb Handle */}
+                <View
+                  style={styles.sliderTouchAreaExact}
+                  {...(Platform.OS !== 'web' ? sliderPanResponder.panHandlers : {})}
+                >
+                  <View
+                    style={[styles.sliderTrackLineExact, isDark && styles.sliderTrackLineExactDark]}
+                    pointerEvents="none"
+                  >
+                    <View
+                      style={[
+                        styles.sliderTrackFilledExact,
+                        {
+                          backgroundColor: '#7C3AED',
+                          width: `${Math.min(100, Math.max(0, ((zoomLevel - 40) / (300 - 40)) * 100))}%`,
+                        },
+                      ]}
+                      pointerEvents="none"
+                    />
+                  </View>
+                  <View
+                    style={[
+                      styles.sliderThumbExact,
+                      {
+                        backgroundColor: '#7C3AED',
+                        borderColor: '#FFFFFF',
+                        left: `${Math.min(100, Math.max(0, ((zoomLevel - 40) / (300 - 40)) * 100))}%`,
+                        transform: [{ translateX: -9 }],
+                      },
+                    ]}
+                    pointerEvents="none"
+                  />
+                  {Platform.OS === 'web' && (
+                    <input
+                      type="range"
+                      min={40}
+                      max={300}
+                      step={1}
+                      value={zoomLevel}
+                      onChange={(e) => {
+                        const val = Number(e.target.value);
+                        if (!isNaN(val)) setZoomLevel(val);
+                      }}
+                      style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        width: '100%',
+                        height: '100%',
+                        opacity: 0,
+                        cursor: 'pointer',
+                      }}
+                    />
+                  )}
                 </View>
 
                 <View style={styles.sheetAspectGrid}>
@@ -5696,7 +5761,7 @@ export default function ShareHubbModal({
                   onLayout={(e) => setSliderTrackWidth(e.nativeEvent.layout.width)}
                   {...(Platform.OS !== 'web' ? rotateSliderPanResponder.panHandlers : {})}
                 >
-                  <View 
+                  <View
                     style={[styles.sliderTrackLineExact, isDark && styles.sliderTrackLineExactDark]}
                     pointerEvents="none"
                   >
@@ -7654,7 +7719,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#FFFFFF',
   },
-  
+
   // --- NEW STYLES FOR REDESIGN ---
   mediaPreviewSquareContainer: {
     flexDirection: 'row',
@@ -7738,7 +7803,7 @@ const styles = StyleSheet.create({
   toolLabelNewDark: {
     color: '#DED5F8',
   },
-  
+
   // Editor Styles
   editorRoot: {
     ...StyleSheet.absoluteFill,

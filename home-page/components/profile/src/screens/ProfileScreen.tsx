@@ -41,6 +41,7 @@ import PostDetailModal from '../components/PostDetailModal';
 import MembersListSection from '../components/MembersListSection';
 import TaggedSection from '../components/TaggedSection';
 import CropAvatarModal from '../components/CropAvatarModal';
+import ProfilePhotoViewModal from '../components/ProfilePhotoViewModal';
 import NotificationsModal from '../components/NotificationsModal';
 import SharePostModal from '../components/SharePostModal';
 import { INITIAL_HUBS_POSTS, INITIAL_CLIPS_POSTS } from '../constants/initialData';
@@ -54,7 +55,7 @@ const DEFAULT_USER: UserProfile = {
   isVerified: false,
   roleBadge: 'Hubber on Hi-Hubble',
   joinedDate: 'Joined September 2026',
-  phoneNumber: '+1 (555) 234-5678',
+  phoneNumber: '+91 98765 43210',
   preferredOtpMethod: 'SMS',
 };
 
@@ -349,6 +350,8 @@ export const ProfileScreen = ({
   // Modal Visibility States
   const [coverModalVisible, setCoverModalVisible] = useState(false);
   const [editProfileModalVisible, setEditProfileModalVisible] = useState(false);
+  const [openedEditFromSettings, setOpenedEditFromSettings] = useState(false);
+  const [profilePhotoModalVisible, setProfilePhotoModalVisible] = useState(false);
   const [settingsModalVisible, setSettingsModalVisible] = useState(false);
   const [followersModalVisible, setFollowersModalVisible] = useState(false);
   const [followersModalType, setFollowersModalType] = useState<'hubbers' | 'hubbies'>('hubbers');
@@ -481,7 +484,6 @@ export const ProfileScreen = ({
     setUser((prev) => ({ ...prev, avatarUrl: finalUri }));
     setAdjustProfileModalVisible(false);
     setCandidateProfileUri(null);
-    Alert.alert('Profile Updated', 'Your profile picture has been adjusted and updated.');
   };
 
   // Update Cover URL directly after adjust & upload
@@ -558,11 +560,9 @@ export const ProfileScreen = ({
           setHubbiesList((prev) => [{ ...hubber, isFollowing: true }, ...prev]);
         }
         setStats((prev) => ({ ...prev, hubbies: prev.hubbies + 1 }));
-        Alert.alert('Following', `You are now following ${hubber.name}! Added to Hubbies.`);
       } else {
         setHubbiesList((prev) => prev.filter((h) => h.id !== memberId && h.handle !== hubber.handle));
         setStats((prev) => ({ ...prev, hubbies: Math.max(0, prev.hubbies - 1) }));
-        Alert.alert('Unfollowed', `You unfollowed ${hubber.name}.`);
       }
       return;
     }
@@ -576,13 +576,11 @@ export const ProfileScreen = ({
           prev.map((m) => (m.id === memberId || m.handle === hubbie.handle ? { ...m, isFollowing: false } : m))
         );
         setStats((prev) => ({ ...prev, hubbies: Math.max(0, prev.hubbies - 1) }));
-        Alert.alert('Unfollowed', `You unfollowed ${hubbie.name}.`);
       } else {
         setHubbiesList((prev) =>
           prev.map((h) => (h.id === memberId ? { ...h, isFollowing: true } : h))
         );
         setStats((prev) => ({ ...prev, hubbies: prev.hubbies + 1 }));
-        Alert.alert('Following', `You are now following ${hubbie.name}!`);
       }
     }
   };
@@ -903,10 +901,14 @@ export const ProfileScreen = ({
           <ProfileInfo
             user={user}
             themeMode={themeMode}
-            onEditPress={() => setEditProfileModalVisible(true)}
+            onEditPress={() => {
+              setOpenedEditFromSettings(false);
+              setEditProfileModalVisible(true);
+            }}
             onSharePress={handleShare}
             onMascotPress={handleMascotPress}
             onAvatarPress={handleChangeAvatar}
+            onAvatarLongPress={() => setProfilePhotoModalVisible(true)}
           />
 
           {/* Stats Row: 3 Distinct Rounded Card Boxes: YOUR HUBS, HUBBERS, HUBBIES with click access */}
@@ -1273,8 +1275,21 @@ export const ProfileScreen = ({
         visible={editProfileModalVisible}
         themeMode={themeMode}
         user={user}
-        onClose={() => setEditProfileModalVisible(false)}
-        onSave={handleSaveProfile}
+        onClose={() => {
+          setEditProfileModalVisible(false);
+          if (openedEditFromSettings) {
+            setOpenedEditFromSettings(false);
+            setSettingsModalVisible(true);
+          }
+        }}
+        onSave={(updated) => {
+          handleSaveProfile(updated);
+          setEditProfileModalVisible(false);
+          if (openedEditFromSettings) {
+            setOpenedEditFromSettings(false);
+            setSettingsModalVisible(true);
+          }
+        }}
       />
 
       {/* 3. Hubbers & Hubbies Modal */}
@@ -1293,15 +1308,21 @@ export const ProfileScreen = ({
         userAvatarUrl={user.avatarUrl}
         onUploadAvatar={handleChangeAvatar}
         onToggleTheme={handleToggleTheme}
-        onEditProfile={() => setEditProfileModalVisible(true)}
+        onEditProfile={() => {
+          setOpenedEditFromSettings(true);
+          setSettingsModalVisible(false);
+          setEditProfileModalVisible(true);
+        }}
         onEditCover={() => setCoverModalVisible(true)}
         onLogout={onLogout || (() => Alert.alert('Logged Out', 'You have been successfully logged out.'))}
         onDeleteAccount={() => {
           setPosts([]);
           setStats({ hubs: 0, hubbers: 0, hubbies: 0, tagged: 0, likes: 0 });
-          Alert.alert('Account Deleted', 'Your account has been reset.');
         }}
-        onClose={() => setSettingsModalVisible(false)}
+        onClose={() => {
+          setOpenedEditFromSettings(false);
+          setSettingsModalVisible(false);
+        }}
         restrictedUsers={restrictedUsers}
         onAddRestricted={handleRestrictUser}
         onRemoveRestricted={handleUnrestrictUser}
@@ -1374,6 +1395,15 @@ export const ProfileScreen = ({
           setShareModalVisible(false);
           setSelectedSharePost(null);
         }}
+      />
+
+      {/* 10. Profile Photo Full View Modal on Long Press */}
+      <ProfilePhotoViewModal
+        visible={profilePhotoModalVisible}
+        user={user}
+        themeMode={themeMode}
+        onClose={() => setProfilePhotoModalVisible(false)}
+        onChangePhoto={handleChangeAvatar}
       />
     </View>
   );

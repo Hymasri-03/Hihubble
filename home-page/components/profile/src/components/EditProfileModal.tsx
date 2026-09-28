@@ -140,6 +140,14 @@ export const EditProfileModal = ({
           style={[styles.modalCard, { backgroundColor: colors.cardBg, borderColor: colors.border }]}
           data-modal-card="true"
         >
+          {/* Logo Design Gradient Accent Bar */}
+          <LinearGradient
+            colors={['#6535EA', '#8B5CF6', '#FF3B8A']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.logoAccentBar}
+          />
+
           {/* Popup Drag Handle */}
           <View style={styles.dragHandleContainer}>
             <View style={[styles.dragHandle, { backgroundColor: colors.border }]} />
@@ -303,7 +311,7 @@ export const EditProfileModal = ({
               ]}
               value={phoneNumber}
               onChangeText={setPhoneNumber}
-              placeholder="+1 (555) 000-0000"
+              placeholder="+91 98765 43210"
               placeholderTextColor={colors.textMuted}
               keyboardType="phone-pad"
             />
@@ -401,9 +409,13 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     shadowColor: BRAND_COLORS.purplePrimary,
     shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.28,
+    shadowOpacity: 0.35,
     shadowRadius: 24,
     elevation: 12,
+  },
+  logoAccentBar: {
+    width: '100%',
+    height: 4,
   },
   dragHandleContainer: {
     alignItems: 'center',

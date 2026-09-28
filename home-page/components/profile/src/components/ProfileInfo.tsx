@@ -11,6 +11,7 @@ export interface ProfileInfoProps {
   onSharePress?: () => void;
   onMascotPress?: () => void;
   onAvatarPress?: () => void;
+  onAvatarLongPress?: () => void;
 }
 
 export const ProfileInfo = ({
@@ -20,6 +21,7 @@ export const ProfileInfo = ({
   onSharePress,
   onMascotPress,
   onAvatarPress,
+  onAvatarLongPress,
 }: ProfileInfoProps) => {
   const colors = THEME[themeMode as 'light' | 'dark'];
 
@@ -31,7 +33,10 @@ export const ProfileInfo = ({
         <TouchableOpacity
           activeOpacity={0.85}
           onPress={onAvatarPress}
+          onLongPress={onAvatarLongPress}
+          delayLongPress={280}
           style={styles.avatarWrapper}
+          accessibilityLabel="Profile avatar - tap to change, long press to view"
         >
           <View style={[styles.avatarCircle, { borderColor: colors.cardBg }]}>
             <Image

@@ -9,7 +9,9 @@ import {
   Animated,
   PanResponder,
   BackHandler,
+  Platform,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons, Feather } from '@expo/vector-icons';
 
 export type TabKey = 'chats' | 'hubbing' | 'home' | 'search' | 'profile';
@@ -152,11 +154,16 @@ export default function ArcBottomNav({
   }, [externalActiveTab]);
 
   const [isOpen, setIsOpen] = useState(false);
+  const insets = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();
 
-  // Initial mascot position centered horizontally near bottom
+  // Bottom inset accounting for phone's hardware or virtual navigation bar (3-button or gesture bar)
+  const bottomInset = Math.max(insets.bottom, Platform.OS === 'android' ? 24 : 12);
+  const topInset = Math.max(insets.top, 24);
+
+  // Initial mascot position centered horizontally, safely floating above phone's bottom navigation bar
   const initialX = (width - MASCOT_SIZE) / 2;
-  const initialY = Math.max(100, height - 126);
+  const initialY = Math.max(topInset + 40, height - MASCOT_SIZE - bottomInset - 18);
 
   const [mascotPos, setMascotPos] = useState({ x: initialX, y: initialY });
   const pan = useRef(new Animated.ValueXY({ x: initialX, y: initialY })).current;
@@ -167,12 +174,12 @@ export default function ArcBottomNav({
   useEffect(() => {
     if (!hasMoved.current) {
       const newX = (width - MASCOT_SIZE) / 2;
-      const newY = Math.max(100, height - 126);
+      const newY = Math.max(topInset + 40, height - MASCOT_SIZE - bottomInset - 18);
       currentPos.current = { x: newX, y: newY };
       pan.setValue({ x: newX, y: newY });
       setMascotPos({ x: newX, y: newY });
     }
-  }, [width, height]);
+  }, [width, height, bottomInset, topInset]);
 
   // Android Back Button handler — 1 step back!
   // If categories are open, back button closes them without exiting
@@ -220,11 +227,11 @@ export default function ArcBottomNav({
           // Restore exact current coordinates
           pan.setValue(currentPos.current);
         } else {
-          // Drag: compute clamped final coordinates
+          // Drag: compute clamped final coordinates safely above phone's navigation bar
           const minX = 10;
           const maxX = width - MASCOT_SIZE - 10;
-          const minY = 50;
-          const maxY = height - MASCOT_SIZE - 20;
+          const minY = topInset + 20;
+          const maxY = height - MASCOT_SIZE - bottomInset - 8;
 
           const rawX = currentPos.current.x + gestureState.dx;
           const rawY = currentPos.current.y + gestureState.dy;
@@ -286,9 +293,9 @@ export default function ArcBottomNav({
           const rawLeft = mascotCenterX + dx - BTN_SIZE / 2;
           const rawTop = mascotCenterY - dy - BTN_SIZE / 2;
 
-          // Keep category buttons fully within visible screen boundaries
+          // Keep category buttons fully within visible screen boundaries above bottom navigation bar
           const left = Math.max(8, Math.min(width - BTN_SIZE - 8, rawLeft));
-          const top = Math.max(45, Math.min(height - BTN_SIZE - 20, rawTop));
+          const top = Math.max(topInset + 10, Math.min(height - BTN_SIZE - bottomInset - 8, rawTop));
           const isActive = activeTab === tab.key;
 
           return (

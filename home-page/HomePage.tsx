@@ -7,6 +7,7 @@ import {
   Platform,
   BackHandler,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import Header from './components/Header';
 import StoriesBar, { StoryItemData } from './components/StoriesBar';
@@ -195,6 +196,7 @@ export interface HomePageProps {
 }
 
 export default function HomePage({ onLogout, currentUser }: HomePageProps = {}) {
+  const insets = useSafeAreaInsets();
   const [isDark, setIsDark] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
@@ -587,8 +589,8 @@ export default function HomePage({ onLogout, currentUser }: HomePageProps = {}) 
               />
             ))}
 
-            {/* Extra bottom spacing so content scrolls past mascot */}
-            <View style={{ height: 160 }} />
+            {/* Extra bottom spacing so content scrolls safely past mascot & bottom nav */}
+            <View style={{ height: Math.max(160, insets.bottom + 130) }} />
           </ScrollView>
         )}
 

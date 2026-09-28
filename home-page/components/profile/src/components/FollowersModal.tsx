@@ -9,6 +9,7 @@ import {
   Image,
 } from 'react-native';
 import { Ionicons, Feather } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { THEME, BRAND_COLORS } from '../constants/theme';
 import { ThemeMode } from '../types/profile';
 
@@ -293,8 +294,12 @@ export const FollowersModal = ({
                     <TouchableOpacity
                       activeOpacity={0.8}
                       onPress={() => {
-                        setActivePopupItem(item);
-                        setPopupMode(item.isFollowing ? 'unfollow' : 'follow');
+                        if (item.isFollowing) {
+                          setActivePopupItem(item);
+                          setPopupMode('unfollow');
+                        } else {
+                          toggleHubberFollow(item.id);
+                        }
                       }}
                       style={[
                         styles.followBtn,
@@ -328,8 +333,12 @@ export const FollowersModal = ({
                   <TouchableOpacity
                     activeOpacity={0.8}
                     onPress={() => {
-                      setActivePopupItem(item);
-                      setPopupMode(item.isFollowing ? 'unfollow' : 'follow');
+                      if (item.isFollowing) {
+                        setActivePopupItem(item);
+                        setPopupMode('unfollow');
+                      } else {
+                        toggleHubbieFollow(item.id);
+                      }
                     }}
                     style={[
                       styles.followBtn,
@@ -368,7 +377,15 @@ export const FollowersModal = ({
                   ]}
                   data-modal-card="true"
                 >
-                  {/* Header: Back Arrow (Left), Title (Center), Close X (Right) */}
+                  {/* Logo Design Gradient Accent Bar */}
+                  <LinearGradient
+                    colors={['#6535EA', '#8B5CF6', '#FF3B8A']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={styles.popupLogoGradientBar}
+                  />
+
+                  {/* Header: Back Arrow (Left), Title with Logo (Center), Close X (Right) */}
                   <View style={[styles.leftPopupHeader, { borderBottomColor: colors.border }]}>
                     <TouchableOpacity
                       activeOpacity={0.7}
@@ -378,13 +395,20 @@ export const FollowersModal = ({
                       <Ionicons name="arrow-back" size={20} color={colors.textPrimary} />
                     </TouchableOpacity>
 
-                    <Text style={[styles.leftPopupTitle, { color: colors.textPrimary }]}>
-                      {popupMode === 'follow'
-                        ? 'Follow Account'
-                        : popupMode === 'unfollow'
-                        ? 'Unfollow Account'
-                        : 'Remove Follower'}
-                    </Text>
+                    <View style={styles.popupTitleRow}>
+                      <Image
+                        source={require('../../assets/logo.png')}
+                        style={styles.popupMiniLogo}
+                        resizeMode="contain"
+                      />
+                      <Text style={[styles.leftPopupTitle, { color: colors.textPrimary }]}>
+                        {popupMode === 'follow'
+                          ? 'Follow Account'
+                          : popupMode === 'unfollow'
+                          ? 'Unfollow Account'
+                          : 'Remove Follower'}
+                      </Text>
+                    </View>
 
                     <TouchableOpacity
                       activeOpacity={0.7}
@@ -622,13 +646,29 @@ const styles = StyleSheet.create({
     maxWidth: 420,
     borderRadius: 24,
     borderWidth: 1,
-    padding: 20,
+    paddingHorizontal: 20,
+    paddingBottom: 20,
     overflow: 'hidden',
     shadowColor: BRAND_COLORS.purplePrimary,
     shadowOffset: { width: 0, height: 12 },
     shadowOpacity: 0.28,
     shadowRadius: 24,
     elevation: 12,
+  },
+  popupLogoGradientBar: {
+    width: '120%',
+    height: 5,
+    marginLeft: -24,
+    marginBottom: 16,
+  },
+  popupTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  popupMiniLogo: {
+    width: 60,
+    height: 22,
   },
   leftPopupHeader: {
     flexDirection: 'row',

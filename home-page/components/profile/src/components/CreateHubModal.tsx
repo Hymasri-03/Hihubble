@@ -260,10 +260,6 @@ export const CreateHubModal: React.FC<CreateHubModalProps> = ({
       setInitialComment('');
       setSelectedVideo(null);
       onClose();
-      Alert.alert(
-        'HubClip Uploaded',
-        `Your video post [ID: ${newShareId}] is now live and directly playable under HubClips!`
-      );
       return;
     }
 
@@ -301,12 +297,6 @@ export const CreateHubModal: React.FC<CreateHubModalProps> = ({
     setCaption('');
     setSelectedImages([]);
     onClose();
-    Alert.alert(
-      'Hub Uploaded',
-      selectedImages.length > 1
-        ? `Added swipeable album with ${selectedImages.length} photos [ID: ${newShareId}] to Your Hubs!`
-        : `Added your photo [ID: ${newShareId}] to Your Hubs!`
-    );
   };
 
   const activeFilterObj = getFilterById(selectedFilter);

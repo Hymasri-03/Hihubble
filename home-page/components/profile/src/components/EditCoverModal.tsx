@@ -10,9 +10,10 @@ import {
   Alert,
   PanResponder,
   ImageStyle,
+  Platform,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import { Ionicons, Feather } from '@expo/vector-icons';
+import { Ionicons, Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { THEME, BRAND_COLORS } from '../constants/theme';
 import { ThemeMode } from '../types/profile';
@@ -53,6 +54,12 @@ const PRESET_COVERS = [
   },
 ];
 
+const PREVIEW_WIDTH = 340;
+const PREVIEW_HEIGHT = 150;
+const MIN_SCALE = 0.25;
+const MAX_SCALE = 4.0;
+const SLIDER_WIDTH = 150;
+
 export const EditCoverModal = ({
   visible,
   themeMode,
@@ -62,14 +69,23 @@ export const EditCoverModal = ({
 }: EditCoverModalProps) => {
   const colors = THEME[themeMode as 'light' | 'dark'];
 
-  // State: 'select' -> user chooses photo or preset; 'adjust' -> user adjusts position/zoom before upload
+  // State: 'select' -> choose photo or preset; 'adjust' -> adjust position/zoom/framing
   const [step, setStep] = useState<'select' | 'adjust'>('select');
   const [candidateUri, setCandidateUri] = useState<string | null>(null);
 
   // Adjustment parameters
   const [scale, setScale] = useState(1);
+  const [rotation, setRotation] = useState(0);
   const [panX, setPanX] = useState(0);
   const [panY, setPanY] = useState(0);
+  const [fitMode, setFitMode] = useState<'fit' | 'fill'>('fill');
+
+  // Natural image dimensions to preserve aspect ratio and avoid cutting edges
+  const [naturalSize, setNaturalSize] = useState<{ width: number; height: number }>({
+    width: 800,
+    height: 340,
+  });
+
   const scaleRef = useRef(1);
   scaleRef.current = scale;
   const panRef = useRef({ x: 0, y: 0 });
@@ -77,15 +93,136 @@ export const EditCoverModal = ({
   const initialTouchDistance = useRef<number | null>(null);
   const initialTouchScale = useRef<number>(1);
   const lastPan = useRef({ x: 0, y: 0 });
+  const lastTapTime = useRef<number>(0);
+  const fitScaleRef = useRef<number>(1);
+  const previewRef = useRef<any>(null);
 
+  // Compute base dimensions preserving natural aspect ratio
+  const imgAspect = naturalSize.width > 0 && naturalSize.height > 0
+    ? naturalSize.width / naturalSize.height
+    : 800 / 340;
+  const bannerAspect = PREVIEW_WIDTH / PREVIEW_HEIGHT;
+
+  let displayW = PREVIEW_WIDTH;
+  let displayH = PREVIEW_HEIGHT;
+  if (imgAspect >= bannerAspect) {
+    displayW = PREVIEW_HEIGHT * imgAspect;
+    displayH = PREVIEW_HEIGHT;
+  } else {
+    displayW = PREVIEW_WIDTH;
+    displayH = PREVIEW_WIDTH / imgAspect;
+  }
+
+  // Load natural dimensions & calculate fitScale
+  useEffect(() => {
+    if (!candidateUri) return;
+    setPanX(0);
+    setPanY(0);
+    setRotation(0);
+    lastPan.current = { x: 0, y: 0 };
+
+    const applyCalculatedDimensions = (w: number, h: number) => {
+      const validW = w > 0 ? w : 800;
+      const validH = h > 0 ? h : 340;
+      setNaturalSize({ width: validW, height: validH });
+
+      const imageRatio = validW / validH;
+      const targetRatio = PREVIEW_WIDTH / PREVIEW_HEIGHT;
+
+      let wholeFitScale = 1;
+      if (imageRatio >= targetRatio) {
+        wholeFitScale = parseFloat((targetRatio / imageRatio).toFixed(2));
+      } else {
+        wholeFitScale = parseFloat((imageRatio / targetRatio).toFixed(2));
+      }
+
+      fitScaleRef.current = Math.min(1.0, Math.max(wholeFitScale, 0.4));
+      setScale(1);
+      setFitMode('fill');
+    };
+
+    if (Platform.OS === 'web') {
+      try {
+        const img = new (window as any).Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => {
+          applyCalculatedDimensions(img.naturalWidth || img.width, img.naturalHeight || img.height);
+        };
+        img.onerror = () => {
+          applyCalculatedDimensions(800, 340);
+        };
+        img.src = candidateUri;
+      } catch {
+        applyCalculatedDimensions(800, 340);
+      }
+    } else {
+      Image.getSize(
+        candidateUri,
+        (w, h) => applyCalculatedDimensions(w, h),
+        () => applyCalculatedDimensions(800, 340)
+      );
+    }
+  }, [candidateUri]);
+
+  // Web multi-touch pinch gesture listener (passive: false to prevent browser zoom)
+  useEffect(() => {
+    if (Platform.OS !== 'web' || step !== 'adjust' || !visible) return;
+
+    const el = previewRef.current;
+    if (!el) return;
+
+    let touchStartDist: number | null = null;
+    let touchStartScale = 1;
+
+    const onTouchStart = (e: TouchEvent) => {
+      if (e.touches.length === 2) {
+        e.preventDefault();
+        const t1 = e.touches[0];
+        const t2 = e.touches[1];
+        touchStartDist = Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
+        touchStartScale = scaleRef.current;
+      }
+    };
+
+    const onTouchMove = (e: TouchEvent) => {
+      if (e.touches.length === 2 && touchStartDist && touchStartDist > 0) {
+        e.preventDefault();
+        const t1 = e.touches[0];
+        const t2 = e.touches[1];
+        const currentDist = Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
+        const factor = currentDist / touchStartDist;
+        const newScale = Math.min(Math.max(touchStartScale * factor, MIN_SCALE), MAX_SCALE);
+        setScale(parseFloat(newScale.toFixed(2)));
+      }
+    };
+
+    const onTouchEnd = (e: TouchEvent) => {
+      if (e.touches.length < 2) {
+        touchStartDist = null;
+      }
+    };
+
+    el.addEventListener('touchstart', onTouchStart, { passive: false });
+    el.addEventListener('touchmove', onTouchMove, { passive: false });
+    el.addEventListener('touchend', onTouchEnd);
+
+    return () => {
+      el.removeEventListener('touchstart', onTouchStart);
+      el.removeEventListener('touchmove', onTouchMove);
+      el.removeEventListener('touchend', onTouchEnd);
+    };
+  }, [step, visible, candidateUri]);
+
+  // Touch gesture PanResponder for native and web gestures
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponder: () => true,
       onPanResponderGrant: (evt) => {
-        if (evt.nativeEvent.touches && evt.nativeEvent.touches.length === 2) {
-          const t1 = evt.nativeEvent.touches[0];
-          const t2 = evt.nativeEvent.touches[1];
+        const touches = evt.nativeEvent.touches;
+        if (touches && touches.length === 2) {
+          const t1 = touches[0];
+          const t2 = touches[1];
           const dist = Math.hypot(t1.pageX - t2.pageX, t1.pageY - t2.pageY);
           initialTouchDistance.current = dist;
           initialTouchScale.current = scaleRef.current;
@@ -94,44 +231,110 @@ export const EditCoverModal = ({
         }
       },
       onPanResponderMove: (evt, gestureState) => {
-        if (evt.nativeEvent.touches && evt.nativeEvent.touches.length === 2) {
-          const t1 = evt.nativeEvent.touches[0];
-          const t2 = evt.nativeEvent.touches[1];
+        const touches = evt.nativeEvent.touches;
+        if (touches && touches.length === 2) {
+          const t1 = touches[0];
+          const t2 = touches[1];
           const currentDist = Math.hypot(t1.pageX - t2.pageX, t1.pageY - t2.pageY);
           if (initialTouchDistance.current && initialTouchDistance.current > 0) {
             const factor = currentDist / initialTouchDistance.current;
-            const newScale = Math.min(Math.max(initialTouchScale.current * factor, 0.6), 3.5);
+            const newScale = Math.min(Math.max(initialTouchScale.current * factor, MIN_SCALE), MAX_SCALE);
             setScale(parseFloat(newScale.toFixed(2)));
           }
-        } else {
+        } else if (!touches || touches.length <= 1) {
           setPanX(lastPan.current.x + gestureState.dx);
           setPanY(lastPan.current.y + gestureState.dy);
         }
       },
-      onPanResponderRelease: () => {
-        lastPan.current = {
-          x: panRef.current.x,
-          y: panRef.current.y,
-        };
+      onPanResponderRelease: (_evt, gestureState) => {
+        lastPan.current = { x: panRef.current.x, y: panRef.current.y };
         initialTouchDistance.current = null;
+
+        // Double tap with fingers to toggle zoom
+        if (Math.hypot(gestureState.dx, gestureState.dy) < 8) {
+          const now = Date.now();
+          if (now - lastTapTime.current < 320) {
+            setScale((prev) => (prev > 1.2 ? fitScaleRef.current : 1.8));
+            lastTapTime.current = 0;
+          } else {
+            lastTapTime.current = now;
+          }
+        }
       },
       onPanResponderTerminate: () => {
-        lastPan.current = {
-          x: panRef.current.x,
-          y: panRef.current.y,
-        };
+        lastPan.current = { x: panRef.current.x, y: panRef.current.y };
         initialTouchDistance.current = null;
       },
     })
   ).current;
 
-  // WhatsApp / Instagram style smooth Zoom In and Zoom Out for Cover Image
+  // Horizontal Zoom Slider PanResponder for native touch drag
+  const updateScaleFromSliderX = (locationX: number) => {
+    if (locationX === undefined || isNaN(locationX)) return;
+    const clampedX = Math.min(Math.max(locationX, 0), SLIDER_WIDTH);
+    const ratio = clampedX / SLIDER_WIDTH;
+    const newScale = MIN_SCALE + ratio * (MAX_SCALE - MIN_SCALE);
+    if (!isNaN(newScale) && isFinite(newScale)) {
+      setScale(parseFloat(newScale.toFixed(2)));
+    }
+  };
+
+  const sliderPanResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderGrant: (evt) => {
+        if (evt.nativeEvent?.locationX !== undefined) {
+          updateScaleFromSliderX(evt.nativeEvent.locationX);
+        }
+      },
+      onPanResponderMove: (evt) => {
+        if (evt.nativeEvent?.locationX !== undefined) {
+          updateScaleFromSliderX(evt.nativeEvent.locationX);
+        }
+      },
+    })
+  ).current;
+
+  // Zoom In / Zoom Out step controls with NaN protection
   const handleZoomIn = () => {
-    setScale((prev) => Math.min(parseFloat((prev + 0.15).toFixed(2)), 3.5));
+    setScale((prev) => {
+      const current = !isNaN(prev) && isFinite(prev) && prev > 0 ? prev : 1;
+      return Math.min(parseFloat((current + 0.15).toFixed(2)), MAX_SCALE);
+    });
   };
 
   const handleZoomOut = () => {
-    setScale((prev) => Math.max(parseFloat((prev - 0.15).toFixed(2)), 0.6));
+    setScale((prev) => {
+      const current = !isNaN(prev) && isFinite(prev) && prev > 0 ? prev : 1;
+      return Math.max(parseFloat((current - 0.15).toFixed(2)), MIN_SCALE);
+    });
+  };
+
+  // Preset Framing Handlers
+  const handleFitWholeBanner = () => {
+    setFitMode('fit');
+    setPanX(0);
+    setPanY(0);
+    lastPan.current = { x: 0, y: 0 };
+    setScale(fitScaleRef.current);
+  };
+
+  const handleFillBanner = () => {
+    setFitMode('fill');
+    setPanX(0);
+    setPanY(0);
+    lastPan.current = { x: 0, y: 0 };
+    setScale(1);
+  };
+
+  const handleRotate = () => {
+    setRotation((prev) => (prev + 90) % 360);
+  };
+
+  const handleResetAdjust = () => {
+    handleFillBanner();
+    setRotation(0);
   };
 
   useEffect(() => {
@@ -139,13 +342,14 @@ export const EditCoverModal = ({
       setStep('select');
       setCandidateUri(null);
       setScale(1);
+      setRotation(0);
       setPanY(0);
       setPanX(0);
       lastPan.current = { x: 0, y: 0 };
     }
   }, [visible]);
 
-  // Step 1: Select photo from gallery -> Enter "Adjust" mode (NOT uploaded directly)
+  // Step 1: Select photo from gallery -> Enter "Adjust" mode
   const handlePickFromGallery = async () => {
     try {
       const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -167,13 +371,14 @@ export const EditCoverModal = ({
       if (!result.canceled && result.assets && result.assets.length > 0) {
         setCandidateUri(result.assets[0].uri);
         setScale(1);
+        setRotation(0);
         setPanY(0);
         setPanX(0);
-        setStep('adjust'); // Transition to Adjust step!
+        setStep('adjust');
       }
     } catch (error) {
       console.log('Error choosing image:', error);
-      Alert.alert('Error', 'Unable to open image gallery.');
+      Alert.alert('Error', 'Could not open image picker.');
     }
   };
 
@@ -181,9 +386,10 @@ export const EditCoverModal = ({
   const handleSelectPreset = (url: string) => {
     setCandidateUri(url);
     setScale(1);
+    setRotation(0);
     setPanY(0);
     setPanX(0);
-    setStep('adjust'); // Transition to Adjust step!
+    setStep('adjust');
   };
 
   // Adjust Current Cover if already set
@@ -191,15 +397,61 @@ export const EditCoverModal = ({
     if (currentCoverUrl) {
       setCandidateUri(currentCoverUrl);
       setScale(1);
+      setRotation(0);
       setPanY(0);
       setPanX(0);
       setStep('adjust');
     }
   };
 
-  // Step 2: User completes adjusting -> Upload and apply to profile!
+  // Step 2: Upload and apply to profile with canvas rendering on web
   const handleUploadCover = () => {
     if (!candidateUri) return;
+
+    if (Platform.OS === 'web' && (scale !== 1 || panX !== 0 || panY !== 0 || rotation !== 0)) {
+      try {
+        const img = new (window as any).Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const outputW = 800;
+          const outputH = 340;
+          canvas.width = outputW;
+          canvas.height = outputH;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.clearRect(0, 0, outputW, outputH);
+            ctx.translate(outputW / 2, outputH / 2);
+            ctx.rotate((rotation * Math.PI) / 180);
+
+            const scaleFactor = outputW / PREVIEW_WIDTH;
+            const drawW = displayW * scaleFactor * scale;
+            const drawH = displayH * scaleFactor * scale;
+            const drawX = -drawW / 2 + panX * scaleFactor;
+            const drawY = -drawH / 2 + panY * scaleFactor;
+
+            ctx.drawImage(img, drawX, drawY, drawW, drawH);
+            const croppedDataUrl = canvas.toDataURL('image/jpeg', 0.94);
+            onSelectCover(croppedDataUrl);
+            onClose();
+          } else {
+            onSelectCover(candidateUri);
+            onClose();
+          }
+        };
+        img.onerror = () => {
+          onSelectCover(candidateUri);
+          onClose();
+        };
+        img.src = candidateUri;
+        return;
+      } catch {
+        onSelectCover(candidateUri);
+        onClose();
+        return;
+      }
+    }
+
     onSelectCover(candidateUri);
     onClose();
   };
@@ -209,6 +461,11 @@ export const EditCoverModal = ({
     onSelectCover(undefined);
     onClose();
   };
+
+  const sliderPercentage = Math.min(
+    Math.max(((scale - MIN_SCALE) / (MAX_SCALE - MIN_SCALE)) * 100, 2),
+    100
+  );
 
   return (
     <Modal
@@ -222,6 +479,14 @@ export const EditCoverModal = ({
           style={[styles.modalCard, { backgroundColor: colors.cardBg, borderColor: colors.border }]}
           data-modal-card="true"
         >
+          {/* Logo Design Gradient Accent Bar */}
+          <LinearGradient
+            colors={['#6535EA', '#8B5CF6', '#FF3B8A']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.logoAccentBar}
+          />
+
           {/* Popup Drag Handle */}
           <View style={styles.dragHandleContainer}>
             <View style={[styles.dragHandle, { backgroundColor: colors.border }]} />
@@ -240,19 +505,33 @@ export const EditCoverModal = ({
             ) : null}
 
             <View style={styles.headerTitleGroup}>
-              <Ionicons
-                name={step === 'adjust' ? 'crop-outline' : 'image-outline'}
-                size={20}
-                color={BRAND_COLORS.purplePrimary}
+              <Image
+                source={require('../../assets/logo.png')}
+                style={styles.headerLogo}
+                resizeMode="contain"
               />
               <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>
-                {step === 'adjust' ? 'Adjust Cover Framing' : 'Edit Cover Image'}
+                {step === 'adjust' ? 'Adjust Banner / Cover' : 'Edit Cover Image'}
               </Text>
             </View>
 
-            <TouchableOpacity activeOpacity={0.7} onPress={onClose} style={styles.closeBtn}>
-              <Ionicons name="close" size={22} color={colors.textMuted} />
-            </TouchableOpacity>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              {step === 'adjust' && (
+                <TouchableOpacity
+                  activeOpacity={0.7}
+                  onPress={handleResetAdjust}
+                  style={[styles.resetTopBtn, { backgroundColor: colors.statCardBg }]}
+                  accessibilityLabel="Reset zoom and framing"
+                >
+                  <Ionicons name="refresh" size={13} color={BRAND_COLORS.purplePrimary} />
+                  <Text style={styles.resetBtnLabel}>Reset</Text>
+                </TouchableOpacity>
+              )}
+
+              <TouchableOpacity activeOpacity={0.7} onPress={onClose} style={styles.closeBtn}>
+                <Ionicons name="close" size={22} color={colors.textMuted} />
+              </TouchableOpacity>
+            </View>
           </View>
 
           {/* STEP 1: Select Image / Presets */}
@@ -281,7 +560,7 @@ export const EditCoverModal = ({
                 </Text>
                 <View style={styles.adjustPillBadge}>
                   <Feather name="sliders" size={12} color={BRAND_COLORS.purplePrimary} />
-                  <Text style={styles.adjustPillText}>Adjust Framing After Upload</Text>
+                  <Text style={styles.adjustPillText}>Adjust Framing & Zoom After Upload</Text>
                 </View>
               </TouchableOpacity>
 
@@ -368,50 +647,135 @@ export const EditCoverModal = ({
                 contentContainerStyle={styles.adjustScrollContent}
                 showsVerticalScrollIndicator={false}
               >
-                <Text style={[styles.stepInstruction, { color: colors.textSecondary }]}>
-                  Drag with your finger to reposition your cover image before uploading.
-                </Text>
+                {/* Preset Framing Mode Selectors: "Fit Whole Banner" vs "Fill Banner" */}
+                <View style={styles.presetModeRow}>
+                  <TouchableOpacity
+                    activeOpacity={0.8}
+                    onPress={handleFitWholeBanner}
+                    style={[
+                      styles.modePillBtn,
+                      fitMode === 'fit'
+                        ? { backgroundColor: BRAND_COLORS.purplePrimary, borderColor: BRAND_COLORS.purplePrimary }
+                        : { backgroundColor: colors.statCardBg, borderColor: colors.border },
+                    ]}
+                  >
+                    <MaterialCommunityIcons
+                      name="fit-to-screen-outline"
+                      size={14}
+                      color={fitMode === 'fit' ? '#FFFFFF' : colors.textSecondary}
+                    />
+                    <Text
+                      style={[
+                        styles.modePillText,
+                        { color: fitMode === 'fit' ? '#FFFFFF' : colors.textSecondary },
+                      ]}
+                    >
+                      Fit Whole Banner
+                    </Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    activeOpacity={0.8}
+                    onPress={handleFillBanner}
+                    style={[
+                      styles.modePillBtn,
+                      fitMode === 'fill'
+                        ? { backgroundColor: BRAND_COLORS.purplePrimary, borderColor: BRAND_COLORS.purplePrimary }
+                        : { backgroundColor: colors.statCardBg, borderColor: colors.border },
+                    ]}
+                  >
+                    <MaterialCommunityIcons
+                      name="crop"
+                      size={14}
+                      color={fitMode === 'fill' ? '#FFFFFF' : colors.textSecondary}
+                    />
+                    <Text
+                      style={[
+                        styles.modePillText,
+                        { color: fitMode === 'fill' ? '#FFFFFF' : colors.textSecondary },
+                      ]}
+                    >
+                      Fill Banner
+                    </Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    activeOpacity={0.8}
+                    onPress={handleRotate}
+                    style={[styles.modePillBtn, { backgroundColor: colors.statCardBg, borderColor: colors.border }]}
+                    accessibilityLabel="Rotate 90 degrees"
+                  >
+                    <MaterialCommunityIcons
+                      name="rotate-right"
+                      size={15}
+                      color={BRAND_COLORS.purplePrimary}
+                    />
+                    <Text style={[styles.modePillText, { color: colors.textSecondary }]}>
+                      {rotation !== 0 ? `${rotation}°` : 'Rotate'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+
+                {/* Touch Gesture Instruction Pill */}
+                <View style={[styles.gesturePill, { backgroundColor: colors.statCardBg, borderColor: colors.border }]}>
+                  <Text style={styles.gestureHandIcon}>✋</Text>
+                  <Text style={[styles.gestureHintText, { color: colors.textSecondary }]}>
+                    Pinch with 2 fingers to zoom • Drag to move banner
+                  </Text>
+                </View>
 
                 {/* Live Banner Preview Box with Direct Hand Dragging */}
                 <View style={[styles.previewFrameWrapper, { borderColor: BRAND_COLORS.purplePrimary }]}>
                   <View
+                    ref={previewRef}
                     {...panResponder.panHandlers}
                     // @ts-ignore
                     onWheel={(e: any) => {
                       if (e.deltaY < 0) {
-                        setScale((prev) => Math.min(parseFloat((prev + 0.1).toFixed(2)), 3.5));
+                        setScale((prev) => Math.min(parseFloat((prev + 0.1).toFixed(2)), MAX_SCALE));
                       } else {
-                        setScale((prev) => Math.max(parseFloat((prev - 0.1).toFixed(2)), 0.6));
+                        setScale((prev) => Math.max(parseFloat((prev - 0.1).toFixed(2)), MIN_SCALE));
                       }
                     }}
                     style={styles.previewCanvas}
                   >
                     {candidateUri ? (
-                      <Image
-                        source={{ uri: candidateUri }}
-                        style={[
-                          styles.adjustImage,
-                          {
-                            transform: [
-                              { scale },
-                              { translateY: panY },
-                              { translateX: panX },
-                            ],
-                          },
-                        ]}
-                        resizeMode="cover"
-                      />
+                      <View
+                        style={{
+                          width: displayW,
+                          height: displayH,
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          transform: [
+                            { scale },
+                            { translateX: panX },
+                            { translateY: panY },
+                            { rotate: `${rotation}deg` },
+                          ],
+                        }}
+                      >
+                        <Image
+                          source={{ uri: candidateUri }}
+                          style={{ width: displayW, height: displayH }}
+                          resizeMode="contain"
+                        />
+                      </View>
                     ) : null}
 
-                    {/* Header Title Mask Overlay Guide */}
-                    <View pointerEvents="none" style={styles.framingGuideOverlay}>
-                      <Text style={styles.framingGuideText}>DRAG WITH FINGER TO POSITION</Text>
+                    {/* Live Zoom Percentage Badge */}
+                    <View style={styles.liveZoomBadge}>
+                      <Text style={styles.liveZoomText}>{Math.round(scale * 100)}%</Text>
                     </View>
                   </View>
                 </View>
 
-                {/* WhatsApp / Instagram style smooth Zoom In and Zoom Out Bar */}
-                <View style={[styles.zoomControlRow, { backgroundColor: colors.statCardBg, borderColor: colors.border }]}>
+                {/* Horizontal Zoom in and Zoom out Controls like in Profile */}
+                <View
+                  style={[
+                    styles.zoomControlRow,
+                    { backgroundColor: colors.statCardBg, borderColor: colors.border },
+                  ]}
+                >
                   {/* Zoom Out Button */}
                   <TouchableOpacity
                     activeOpacity={0.7}
@@ -422,19 +786,58 @@ export const EditCoverModal = ({
                     <Feather name="minus" size={16} color={colors.textPrimary} />
                   </TouchableOpacity>
 
-                  {/* Interactive Zoom Slider Track */}
-                  <View style={styles.sliderTrackContainer}>
-                    <View style={[styles.sliderTrackBg, { backgroundColor: '#E2DCF8' }]}>
-                      <View
+                  {/* Interactive Horizontal Zoom Slider Track with Thumb Handle */}
+                  <View
+                    style={styles.sliderTrackContainer}
+                    {...(Platform.OS !== 'web' ? sliderPanResponder.panHandlers : {})}
+                  >
+                    <View style={[styles.sliderTrackBg, { backgroundColor: '#DDD6FE' }]}>
+                      <LinearGradient
+                        colors={['#6535EA', '#8B5CF6', '#FF3B8A']}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 0 }}
                         style={[
                           styles.sliderTrackFill,
                           {
-                            width: `${Math.min(Math.max(((scale - 0.6) / (3.5 - 0.6)) * 100, 5), 100)}%`,
-                            backgroundColor: BRAND_COLORS.purplePrimary,
+                            width: `${sliderPercentage}%`,
                           },
                         ]}
                       />
                     </View>
+
+                    {/* Slider Thumb Handle */}
+                    <View
+                      pointerEvents="none"
+                      style={[
+                        styles.sliderThumb,
+                        {
+                          left: `${sliderPercentage}%`,
+                        },
+                      ]}
+                    />
+
+                    {Platform.OS === 'web' && (
+                      <input
+                        type="range"
+                        min={MIN_SCALE}
+                        max={MAX_SCALE}
+                        step={0.02}
+                        value={scale}
+                        onChange={(e) => {
+                          const val = parseFloat(e.target.value);
+                          if (!isNaN(val) && isFinite(val)) setScale(val);
+                        }}
+                        style={{
+                          position: 'absolute',
+                          top: 0,
+                          left: 0,
+                          width: '100%',
+                          height: '100%',
+                          opacity: 0,
+                          cursor: 'pointer',
+                        }}
+                      />
+                    )}
                   </View>
 
                   {/* Zoom In Button */}
@@ -460,6 +863,7 @@ export const EditCoverModal = ({
                         setPanY(0);
                         setPanX(0);
                         setScale(1);
+                        setRotation(0);
                         lastPan.current = { x: 0, y: 0 };
                       }}
                     >
@@ -524,10 +928,17 @@ export const EditCoverModal = ({
                 <TouchableOpacity
                   activeOpacity={0.85}
                   onPress={handleUploadCover}
-                  style={styles.fixedUploadBtn}
+                  style={styles.fixedUploadBtnWrapper}
                 >
-                  <Feather name="upload" size={18} color="#FFFFFF" />
-                  <Text style={styles.fixedUploadBtnText}>Upload</Text>
+                  <LinearGradient
+                    colors={['#6535EA', '#8B5CF6', '#FF3B8A']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={styles.fixedUploadBtn}
+                  >
+                    <Feather name="check" size={18} color="#FFFFFF" />
+                    <Text style={styles.fixedUploadBtnText}>Save & Set Banner</Text>
+                  </LinearGradient>
                 </TouchableOpacity>
               </View>
             </View>
@@ -541,63 +952,124 @@ export const EditCoverModal = ({
 const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.72)',
+    backgroundColor: 'rgba(5, 3, 15, 0.78)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 16,
   },
   modalCard: {
     width: '100%',
-    maxWidth: 520,
+    maxWidth: 440,
     borderRadius: 26,
     borderWidth: 1,
-    paddingBottom: 24,
-    maxHeight: '90%',
+    paddingBottom: 16,
+    maxHeight: '92%',
     overflow: 'hidden',
     shadowColor: BRAND_COLORS.purplePrimary,
     shadowOffset: { width: 0, height: 12 },
     shadowOpacity: 0.28,
     shadowRadius: 24,
-    elevation: 12,
+    elevation: 24,
+  },
+  logoAccentBar: {
+    width: '100%',
+    height: 4.5,
   },
   dragHandleContainer: {
     alignItems: 'center',
-    paddingVertical: 10,
+    paddingVertical: 6,
   },
   dragHandle: {
-    width: 44,
-    height: 4.5,
-    borderRadius: 3,
-    opacity: 0.8,
+    width: 36,
+    height: 4,
+    borderRadius: 2,
   },
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingBottom: 14,
+    paddingHorizontal: 16,
+    paddingBottom: 10,
     borderBottomWidth: 1,
   },
   backBtn: {
     padding: 4,
-    marginRight: 8,
+    marginRight: 6,
   },
   headerTitleGroup: {
-    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+    flex: 1,
+  },
+  headerLogo: {
+    width: 24,
+    height: 24,
   },
   modalTitle: {
-    fontSize: 16.5,
+    fontSize: 15,
     fontWeight: '800',
+    letterSpacing: -0.2,
+  },
+  resetTopBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderRadius: 12,
+    gap: 4,
+  },
+  resetBtnLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: BRAND_COLORS.purplePrimary,
   },
   closeBtn: {
     padding: 4,
   },
   modalBody: {
-    paddingHorizontal: 20,
-    paddingTop: 16,
+    paddingHorizontal: 16,
+    paddingTop: 12,
+  },
+  presetModeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginTop: 4,
+    marginBottom: 8,
+  },
+  modePillBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 14,
+    borderWidth: 1,
+  },
+  modePillText: {
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  gesturePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginBottom: 10,
+    gap: 6,
+    alignSelf: 'center',
+  },
+  gestureHandIcon: {
+    fontSize: 12,
+  },
+  gestureHintText: {
+    fontSize: 11,
+    fontWeight: '600',
   },
   uploadCard: {
     alignItems: 'center',
@@ -725,19 +1197,14 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
   },
-  stepInstruction: {
-    fontSize: 12.5,
-    fontWeight: '500',
-    marginBottom: 12,
-  },
   previewFrameWrapper: {
     width: '100%',
-    height: 160,
+    height: PREVIEW_HEIGHT,
     borderRadius: 18,
     overflow: 'hidden',
     borderWidth: 2.5,
     backgroundColor: '#0F0E17',
-    marginBottom: 16,
+    marginBottom: 12,
   },
   previewCanvas: {
     width: '100%',
@@ -747,27 +1214,25 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  adjustImage: {
-    width: '100%',
-    height: '100%',
-  } as ImageStyle,
-  framingGuideOverlay: {
+  liveZoomBadge: {
     position: 'absolute',
     bottom: 8,
-    left: 10,
-    backgroundColor: 'rgba(0,0,0,0.6)',
+    right: 8,
+    backgroundColor: 'rgba(10, 8, 20, 0.75)',
     paddingHorizontal: 8,
     paddingVertical: 3,
-    borderRadius: 6,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.25)',
   },
-  framingGuideText: {
+  liveZoomText: {
     color: '#FFFFFF',
-    fontSize: 9.5,
+    fontSize: 10,
     fontWeight: '800',
-    letterSpacing: 0.5,
+    letterSpacing: 0.3,
   },
   adjustSectionBlock: {
-    marginBottom: 14,
+    marginBottom: 12,
   },
   adjustLabelRow: {
     flexDirection: 'row',
@@ -807,36 +1272,59 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     width: '100%',
-    borderRadius: 16,
+    borderRadius: 18,
     borderWidth: 1,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    marginBottom: 14,
-    gap: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    marginBottom: 12,
+    gap: 8,
   },
   zoomActionBtn: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
   },
   sliderTrackContainer: {
     flex: 1,
-    height: 20,
+    height: 24,
     justifyContent: 'center',
+    position: 'relative',
+    marginHorizontal: 4,
   },
   sliderTrackBg: {
-    height: 6,
-    borderRadius: 3,
+    height: 7,
+    borderRadius: 4,
     overflow: 'hidden',
     width: '100%',
   },
   sliderTrackFill: {
     height: '100%',
-    borderRadius: 3,
+    borderRadius: 4,
+  },
+  sliderThumb: {
+    position: 'absolute',
+    top: 4,
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: '#FFFFFF',
+    marginLeft: -8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
+    elevation: 4,
+    borderWidth: 2,
+    borderColor: BRAND_COLORS.purplePrimary,
   },
   adjustContainer: {
     maxHeight: 520,
@@ -846,32 +1334,35 @@ const styles = StyleSheet.create({
     paddingBottom: 16,
   },
   fixedBottomFooter: {
-    paddingHorizontal: 20,
-    paddingTop: 12,
-    paddingBottom: 24,
+    paddingHorizontal: 16,
+    paddingTop: 10,
+    paddingBottom: 14,
     borderTopWidth: 1,
     width: '100%',
   },
+  fixedUploadBtnWrapper: {
+    width: '100%',
+    borderRadius: 16,
+    overflow: 'hidden',
+    shadowColor: BRAND_COLORS.purplePrimary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
+    elevation: 4,
+  },
   fixedUploadBtn: {
     width: '100%',
-    backgroundColor: BRAND_COLORS.purplePrimary,
-    borderRadius: 16,
-    paddingVertical: 14,
+    paddingVertical: 13,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    shadowColor: BRAND_COLORS.purplePrimary,
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.35,
-    shadowRadius: 5,
-    elevation: 3,
   },
   fixedUploadBtnText: {
     color: '#FFFFFF',
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '800',
-    letterSpacing: 0.3,
+    letterSpacing: -0.2,
   },
   confirmUploadBtnWrapper: {
     width: '100%',

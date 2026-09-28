@@ -9,6 +9,7 @@ import {
   Modal,
 } from 'react-native';
 import { Ionicons, Feather } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { THEME, BRAND_COLORS } from '../constants/theme';
 import { MemberPerson, ThemeMode } from '../types/profile';
 
@@ -50,8 +51,12 @@ export const MembersListSection = ({
 
   // Trigger Follow or Unfollow confirmation popup
   const handleFollowClick = (person: MemberPerson) => {
-    setActiveModalPerson(person);
-    setModalType(person.isFollowing ? 'unfollow' : 'follow');
+    if (person.isFollowing) {
+      setActiveModalPerson(person);
+      setModalType('unfollow');
+    } else {
+      onToggleFollow?.(person.id);
+    }
   };
 
   // Trigger "Choose action for this account" popup
@@ -266,6 +271,14 @@ export const MembersListSection = ({
               ]}
               data-modal-card="true"
             >
+              {/* Logo Design Gradient Accent Bar */}
+              <LinearGradient
+                colors={['#6535EA', '#8B5CF6', '#FF3B8A']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.popupLogoGradientBar}
+              />
+
               {/* Header with Back Arrow (Left), Title (Center), and X (Close) on Right */}
               <View style={[styles.popupHeader, { borderBottomColor: colors.border }]}>
                 <TouchableOpacity
@@ -276,13 +289,20 @@ export const MembersListSection = ({
                   <Ionicons name="arrow-back" size={20} color={colors.textPrimary} />
                 </TouchableOpacity>
 
-                <Text style={[styles.popupHeaderTitle, { color: colors.textPrimary }]}>
-                  {modalType === 'choose_action'
-                    ? 'Account Options'
-                    : modalType === 'follow'
-                    ? 'Follow Account'
-                    : 'Unfollow Account'}
-                </Text>
+                <View style={styles.popupTitleRow}>
+                  <Image
+                    source={require('../../assets/logo.png')}
+                    style={styles.popupMiniLogo}
+                    resizeMode="contain"
+                  />
+                  <Text style={[styles.popupHeaderTitle, { color: colors.textPrimary }]}>
+                    {modalType === 'choose_action'
+                      ? 'Account Options'
+                      : modalType === 'follow'
+                      ? 'Follow Account'
+                      : 'Unfollow Account'}
+                  </Text>
+                </View>
 
                 <TouchableOpacity
                   activeOpacity={0.7}
@@ -712,13 +732,29 @@ const styles = StyleSheet.create({
     maxWidth: 440,
     borderRadius: 24,
     borderWidth: 1,
-    padding: 20,
+    paddingHorizontal: 20,
+    paddingBottom: 20,
     overflow: 'hidden',
     shadowColor: BRAND_COLORS.purplePrimary,
     shadowOffset: { width: 0, height: 12 },
     shadowOpacity: 0.28,
     shadowRadius: 24,
     elevation: 12,
+  },
+  popupLogoGradientBar: {
+    width: '120%',
+    height: 5,
+    marginLeft: -24,
+    marginBottom: 16,
+  },
+  popupTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  popupMiniLogo: {
+    width: 60,
+    height: 22,
   },
   popupHeader: {
     flexDirection: 'row',

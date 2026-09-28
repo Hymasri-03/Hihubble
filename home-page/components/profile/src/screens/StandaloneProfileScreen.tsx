@@ -24,6 +24,7 @@ import CreateHubModal from '../components/CreateHubModal';
 import ClipsGrid from '../components/ClipsGrid';
 import CropAvatarModal from '../components/CropAvatarModal';
 import PostsGrid from '../components/PostsGrid';
+import ProfilePhotoViewModal from '../components/ProfilePhotoViewModal';
 import { TabType, ThemeMode, UserProfile, ProfileStats, HubPost } from '../types/profile';
 
 export interface StandaloneProfileScreenProps {
@@ -94,7 +95,7 @@ const DEFAULT_USER: UserProfile = {
   avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=400&auto=format&fit=crop',
   isVerified: true,
   roleBadge: 'Hubber on Hi-Hubble',
-  phoneNumber: '+1 (555) 382-9012',
+  phoneNumber: '+91 98765 43210',
   preferredOtpMethod: 'SMS',
 };
 
@@ -124,11 +125,13 @@ export default function StandaloneProfileScreen({
   const [refreshing, setRefreshing] = useState(false);
   const [coverModalVisible, setCoverModalVisible] = useState(false);
   const [editProfileModalVisible, setEditProfileModalVisible] = useState(false);
+  const [openedEditFromSettings, setOpenedEditFromSettings] = useState(false);
   const [settingsModalVisible, setSettingsModalVisible] = useState(false);
   const [createHubModalVisible, setCreateHubModalVisible] = useState(false);
   const [posts, setPosts] = useState<HubPost[]>([]);
   const [cropModalVisible, setCropModalVisible] = useState(false);
   const [cropImageUri, setCropImageUri] = useState<string | null>(null);
+  const [profilePhotoModalVisible, setProfilePhotoModalVisible] = useState(false);
 
   const colors = PALETTE[themeMode as 'light' | 'dark'];
 
@@ -190,6 +193,7 @@ export default function StandaloneProfileScreen({
 
   const handleEdit = () => {
     if (onEditProfile) return onEditProfile();
+    setOpenedEditFromSettings(false);
     setEditProfileModalVisible(true);
   };
 
@@ -326,12 +330,22 @@ export default function StandaloneProfileScreen({
             {/* PROFILE INFO ROW (Fixed mascot overlap bug) */}
             <View style={styles.profileInfoContainer}>
               <View style={styles.avatarActionRow}>
-                <View style={styles.avatarAnchor}>
+                <TouchableOpacity
+                  activeOpacity={0.85}
+                  onPress={handleChangeAvatar}
+                  onLongPress={() => setProfilePhotoModalVisible(true)}
+                  delayLongPress={280}
+                  style={styles.avatarAnchor}
+                  accessibilityLabel="Profile avatar - tap to change, long press to view full profile photo"
+                >
                   <Image
                     source={{ uri: user.avatarUrl }}
                     style={[styles.mainAvatar, { borderColor: colors.cardBg }]}
                   />
-                </View>
+                  <View style={[styles.cameraBadge, { backgroundColor: BRAND.purplePrimary }]}>
+                    <Feather name="camera" size={11} color="#FFFFFF" />
+                  </View>
+                </TouchableOpacity>
 
                 {/* Edit Profile & Share Buttons */}
                 <View style={styles.actionRow}>
@@ -615,8 +629,21 @@ export default function StandaloneProfileScreen({
         visible={editProfileModalVisible}
         themeMode={themeMode}
         user={user}
-        onClose={() => setEditProfileModalVisible(false)}
-        onSave={(updated) => setUser((prev) => ({ ...prev, ...updated }))}
+        onClose={() => {
+          setEditProfileModalVisible(false);
+          if (openedEditFromSettings) {
+            setOpenedEditFromSettings(false);
+            setSettingsModalVisible(true);
+          }
+        }}
+        onSave={(updated) => {
+          setUser((prev) => ({ ...prev, ...updated }));
+          setEditProfileModalVisible(false);
+          if (openedEditFromSettings) {
+            setOpenedEditFromSettings(false);
+            setSettingsModalVisible(true);
+          }
+        }}
       />
       <SettingsModal
         visible={settingsModalVisible}
@@ -624,15 +651,21 @@ export default function StandaloneProfileScreen({
         userAvatarUrl={user.avatarUrl}
         onUploadAvatar={handleChangeAvatar}
         onToggleTheme={toggleTheme}
-        onEditProfile={() => setEditProfileModalVisible(true)}
+        onEditProfile={() => {
+          setOpenedEditFromSettings(true);
+          setSettingsModalVisible(false);
+          setEditProfileModalVisible(true);
+        }}
         onEditCover={() => setCoverModalVisible(true)}
         onLogout={() => Alert.alert('Logged Out', 'You have been successfully logged out.')}
         onDeleteAccount={() => {
           setPosts([]);
           setStats({ hubs: 0, hubbers: 0, hubbies: 0, tagged: 0, likes: 0 });
-          Alert.alert('Account Deleted', 'Your account has been deleted.');
         }}
-        onClose={() => setSettingsModalVisible(false)}
+        onClose={() => {
+          setOpenedEditFromSettings(false);
+          setSettingsModalVisible(false);
+        }}
       />
       <CreateHubModal
         visible={createHubModalVisible}
@@ -657,6 +690,15 @@ export default function StandaloneProfileScreen({
           setCropImageUri(null);
         }}
         onCropDone={handleCropDone}
+      />
+
+      {/* Profile Photo Full View Modal on Long Press */}
+      <ProfilePhotoViewModal
+        visible={profilePhotoModalVisible}
+        user={user}
+        themeMode={themeMode}
+        onClose={() => setProfilePhotoModalVisible(false)}
+        onChangePhoto={handleChangeAvatar}
       />
     </View>
   );
@@ -796,6 +838,18 @@ const styles = StyleSheet.create({
     borderWidth: 4,
     backgroundColor: '#E2E8F0',
     overflow: 'hidden',
+  },
+  cameraBadge: {
+    position: 'absolute',
+    bottom: 2,
+    right: 2,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
   },
   mascotAnchor: {
     position: 'absolute',

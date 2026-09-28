@@ -17,6 +17,7 @@ export { default as PostDetailModal } from './components/PostDetailModal';
 export { default as MembersListSection } from './components/MembersListSection';
 export { default as TaggedSection } from './components/TaggedSection';
 export { default as CropAvatarModal } from './components/CropAvatarModal';
+export { default as ProfilePhotoViewModal } from './components/ProfilePhotoViewModal';
 export { default as NotificationsModal } from './components/NotificationsModal';
 
 export * from './types/profile';
